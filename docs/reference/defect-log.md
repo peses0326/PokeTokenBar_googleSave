@@ -44,6 +44,76 @@ read_when:
 
 ## 판정·데이터
 
+- **Visible personal backups use file-scoped OAuth and recoverable retention.** Moving the sync
+  destination from appDataFolder to My Drive changes the permission contract: old app-data grants
+  cannot be treated as file grants, and same-name folders may be shared or owned by another account.
+  The transport now requires `drive.file`, constrains every record query/upload to validated root
+  folder IDs, and rejects shared/other-owned/shared-drive roots. Root creation uses the user's
+  OAuth account and no sharing API. Duplicate initial folder creation is read as multiple roots,
+  with only the canonical root receiving writes. Retention now trashes old app revisions instead
+  of permanently deleting them. Protocol tests exercise the real folder/list/multipart routines;
+  the older in-memory save tests bypassed those HTTP details and could not verify placement.
+
+- **Bearer-token HTTP must reject redirects and non-Google destinations.** The original helper
+  used urllib's default redirect behavior; checking initial URL constants did not prove an
+  Authorization header could never be forwarded. Its transport mock also bypassed HTTP setup.
+  The raw boundary now allows only the three required Google HTTPS API hosts and refuses
+  redirects. Security regressions cover HTTP, hostile hosts, URL credentials and redirects;
+  replacing the redirect guard with a no-op makes the regression fail. OAuth callback state,
+  PKCE and denied Drive scope are also covered, without claiming a live Google login.
+
+- **A setup preview must expose a window on launch and reopen.** The Google preview inherited
+  the production app's menu-bar-only activation policy and empty scene. Launch logs and usage
+  polling showed it running, but users saw no window or Dock icon and reported an unresponsive
+  launch. Settings-render tests checked the section in isolation, not the packaged startup path.
+  Preview startup now uses a regular activation policy and opens a retained Settings window;
+  reopening the app brings it forward. Production keeps its accessory/menu-bar behavior.
+  A related packaging sweep found the sole `Bundle.module` use depended on SwiftPM's generated
+  build-directory fallback: native SwiftPM searches the app root, while the app builder installs
+  resources in Contents/Resources. Bundled launches now resolve the helper from that resource
+  directory without evaluating the fatal SwiftPM fallback. The regression creates only the
+  packaged resource tree and requires lookup without any Swift build directory.
+
+- **Cloud import acknowledgement follows a durable local write, not an in-memory swap.**
+  The existing importer backed up before replacing state but its final `save()` swallowed write
+  failures. A sync acknowledgement after that return could advertise progress that would disappear
+  on restart. Existing transfer tests covered failed backup creation, not the final write boundary.
+  Both manual and cloud imports now encode and atomically persist the rebased incoming state before
+  changing in-memory progress or difficulty. Cloud claims are included in that same durable write;
+  a second save followed by a separate claims update would introduce a replay window. The class
+  sweep covered the importer, snapshot restore (which delegates to it), normal autosave and cloud
+  acknowledgement. `GoogleCloudSyncTests` exercises persisted claims, backup presence, difficulty
+  units and changes arriving while a download is in flight.
+
+- **Cloud retries persist both the immutable upload payload and an unacknowledged import.**
+  An interrupted upload may already exist remotely. Recreating its payload or reusing its sequence
+  for a new local edit creates ambiguous branches. A downloaded revision must also remain pending
+  until the app applies it: merely updating the local revision journal can cause a restart to upload
+  the old local game over the user's chosen cloud game. The first implementation's happy-path
+  tests did not cover the gap between Drive commit, process output, local apply and acknowledgement.
+  The helper now persists upload intent before HTTP, resumes it before accepting subsequent edits,
+  and replays pending imports after restart. `test_google_sync.py` covers lost upload responses,
+  new local edits during retry, missing acknowledgements, app-applied-before-ack recovery and lost
+  responses while resolving concurrent branches. Equal clocks with distinct IDs remain conflicts.
+
+- **Game digests must normalize serialized sets, not just dictionary keys.** Swift `Set` values
+  encode as arrays whose order can change between processes. Sorting JSON keys alone can mark
+  identical saves on two Macs as concurrent edits. The serialized state sweep found
+  `collectedFinals` and `notifiedDexCompletions`; ordered evolution paths and move lists must stay
+  ordered. Native race guards and Python sync digests sort only those set fields. The regression
+  reverses both arrays and requires an unchanged sync with no new cloud revision.
+
+- **Optional remote summaries must treat both Foundation missing-file errors as unconfigured.**
+  The first remote-reader implementation matched only one Cocoa missing-file code; the absent-file
+  test exposed the other variant. Throwing here would make a newly registered, unconfigured
+  provider report a refresh failure for users who never enabled remote collection. Existing
+  provider tests injected their own sources and therefore did not exercise this new default
+  reader. The class sweep found that `LocalizationErrors` already handles both codes. The reader
+  now matches `NSFileNoSuchFileError` and `NSFileReadNoSuchFileError`, while malformed, oversized
+  and inaccessible files retain failure semantics. `RemoteSummaryTests` covers an absent file,
+  atomic replacement, invalid schema and totals, real Python-collector output, and persistent
+  cumulative growth across midnight, restart, missing observations and regressing summaries.
+
 - **Provider opt-out must also cover independently added official limits.** The provider toggle
   and the OpenCode Go/Grok limit integrations passed separately, but their combined refresh
   pipeline still fetched both disabled providers and retained their previous limits and expired-login

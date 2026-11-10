@@ -13,6 +13,7 @@ struct SettingsView: View {
     /// 고급 섹션을 펼친 채로 열지. 세션 키 만료 안내에서 들어온 경우에만 true —
     /// 접힌 채로 열면 고칠 입력란이 안 보여 안내가 막다른 길이 된다.
     var startExpanded = false
+    var cloudSync: GoogleCloudSync? = nil
     @State private var launchAtLogin = LoginItem.isEnabled
     @State private var launchAtLoginError: Error?
     @State private var reportFailed = false
@@ -77,6 +78,7 @@ struct SettingsView: View {
                         floatingPetGroup(store)
                         notificationsGroup(store)
                         updateGroup(store)
+                        if let cloudSync { GoogleSyncSettingsView(sync: cloudSync, companion: companion, usage: store) }
                         transferGroup(store)
                         advancedGroup(store)
                             .id("advancedSettingsSection")
@@ -248,7 +250,7 @@ struct SettingsView: View {
                 Spacer()
                 Toggle(l.launchAtLogin, isOn: $launchAtLogin)
                     .labelsHidden().toggleStyle(.switch).controlSize(.small)
-                    .disabled(!isBundledApp)
+                    .disabled(!isBundledApp || AppEnv.isCloudPreview)
                     .onChange(of: launchAtLogin) { _, newValue in
                         do {
                             try LoginItem.setEnabled(newValue)   // KeepAlive 에이전트(로그인 실행+크래시 재실행)

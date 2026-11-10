@@ -1979,3 +1979,76 @@ struct L {
           "Вы полностью исчерпали лимит токенов (\(window)). Это награда за старания — используйте её, чтобы эволюционировать покемона!")
     }
 }
+
+// MARK: Google sync
+extension L {
+    var gsTitle: String { t("Google 동기화", "Google sync", "Google 同期", "Sincronización con Google", "Synchronisation Google", "Sincronização com o Google", "Google-Synchronisierung", "Синхронизация с Google") }
+    var gsIntro: String { t("내 Google Drive의 PokeTokenBar_Save 폴더에 세이브를 자동으로 보관합니다.",
+                            "Automatically save your progress in PokeTokenBar_Save at the top of your Google Drive.",
+                            "Google ドライブの PokeTokenBar_Save フォルダにセーブを自動で保管します。",
+                            "Guarda tu progreso automáticamente en la carpeta PokeTokenBar_Save de tu Google Drive.",
+                            "Enregistre automatiquement ta progression dans le dossier PokeTokenBar_Save de ton Google Drive.",
+                            "Salva seu progresso automaticamente na pasta PokeTokenBar_Save do seu Google Drive.",
+                            "Speichert deinen Fortschritt automatisch im Ordner PokeTokenBar_Save in deinem Google Drive.",
+                            "Автоматически сохраняет прогресс в папку PokeTokenBar_Save на вашем Google Диске.") }
+    var gsOpenFolder: String { t("내 Drive의 세이브 폴더 열기", "Open my Drive save folder", "ドライブのセーブフォルダを開く", "Abrir la carpeta de guardado en Drive", "Ouvrir le dossier de sauvegarde Drive", "Abrir a pasta de salvamento no Drive", "Speicherordner in Drive öffnen", "Открыть папку сохранений на Диске") }
+    func gsLastSynced(_ date: String) -> String { t("최근 동기화: \(date)", "Last synced: \(date)", "最終同期: \(date)", "Última sincronización: \(date)", "Dernière synchro : \(date)", "Última sincronização: \(date)", "Zuletzt synchronisiert: \(date)", "Последняя синхронизация: \(date)") }
+    var gsEmpty: String { t("아직 클라우드 세이브가 없습니다. 이 Mac의 진행으로 시작할 수 있습니다.",
+                            "No cloud save yet. Start with this Mac’s progress.",
+                            "クラウドセーブはまだありません。この Mac の進行で始められます。",
+                            "Aún no hay partida en la nube. Empieza con el progreso de este Mac.",
+                            "Pas encore de sauvegarde cloud. Commence avec la progression de ce Mac.",
+                            "Ainda não há salvamento na nuvem. Comece com o progresso deste Mac.",
+                            "Noch kein Cloud-Spielstand. Starte mit dem Fortschritt dieses Macs.",
+                            "Облачного сохранения пока нет. Начните с прогресса этого Mac.") }
+    var gsChoose: String { t("이어 쓸 진행을 선택하세요. 선택 전에는 어느 쪽도 자동으로 덮어쓰지 않습니다.",
+                             "Choose which progress to continue. Neither version is replaced automatically.",
+                             "続ける進行を選んでください。選ぶまでどちらも自動で上書きされません。",
+                             "Elige qué progreso continuar. Ninguna versión se reemplaza automáticamente.",
+                             "Choisis la progression à poursuivre. Aucune version n’est remplacée automatiquement.",
+                             "Escolha qual progresso continuar. Nenhuma versão é substituída automaticamente.",
+                             "Wähle, welcher Fortschritt weitergeht. Keine Version wird automatisch ersetzt.",
+                             "Выберите, какой прогресс продолжить. Ни одна версия не заменяется автоматически.") }
+    var gsContinueLocal: String { t("이 Mac의 진행으로 계속", "Continue with this Mac", "この Mac の進行で続ける", "Continuar con este Mac", "Continuer avec ce Mac", "Continuar com este Mac", "Mit diesem Mac fortfahren", "Продолжить с этим Mac") }
+    func gsContinueRemote(_ index: Int) -> String { t("클라우드 진행 \(index)로 계속", "Continue with cloud save \(index)", "クラウドの進行 \(index) で続ける", "Continuar con la partida en la nube \(index)", "Continuer avec la sauvegarde cloud \(index)", "Continuar com o salvamento na nuvem \(index)", "Mit Cloud-Spielstand \(index) fortfahren", "Продолжить с облачным сохранением \(index)") }
+    var gsSyncNow: String { t("지금 동기화", "Sync now", "今すぐ同期", "Sincronizar ahora", "Synchroniser", "Sincronizar agora", "Jetzt synchronisieren", "Синхронизировать") }
+    var gsDisconnect: String { t("연결 해제", "Disconnect", "接続解除", "Desconectar", "Déconnecter", "Desconectar", "Trennen", "Отключить") }
+    var gsSignIn: String { t("Google 로그인", "Sign in with Google", "Google でログイン", "Iniciar sesión con Google", "Se connecter avec Google", "Entrar com o Google", "Mit Google anmelden", "Войти через Google") }
+    var gsSignInHint: String { t("브라우저에서 본인 계정을 선택하고 Drive 저장 권한에 동의하면 연결됩니다.",
+                                 "Choose your Google account in the browser and allow saving to your Drive.",
+                                 "ブラウザでアカウントを選び、ドライブへの保存を許可すると接続されます。",
+                                 "Elige tu cuenta de Google en el navegador y permite guardar en tu Drive.",
+                                 "Choisis ton compte Google dans le navigateur et autorise l’enregistrement dans ton Drive.",
+                                 "Escolha sua conta Google no navegador e permita salvar no seu Drive.",
+                                 "Wähle im Browser dein Google-Konto und erlaube das Speichern in deinem Drive.",
+                                 "Выберите аккаунт Google в браузере и разрешите сохранение на Диск.") }
+    var gsClientMissing: String { t("이 테스트 빌드는 앱 개발용 Google 클라이언트 ID 등록을 기다리고 있습니다.",
+                                    "This preview is waiting for the app’s Google OAuth client ID.",
+                                    "このテストビルドはアプリの Google OAuth クライアント ID の登録を待っています。",
+                                    "Esta versión de prueba espera el ID de cliente OAuth de Google de la app.",
+                                    "Cette préversion attend l’identifiant client OAuth Google de l’app.",
+                                    "Esta prévia aguarda o ID de cliente OAuth do Google do app.",
+                                    "Diese Vorschau wartet auf die Google-OAuth-Client-ID der App.",
+                                    "Эта тестовая сборка ожидает OAuth client ID Google для приложения.") }
+    var gsConnecting: String { t("Google 연결 중…", "Connecting to Google…", "Google に接続中…", "Conectando con Google…", "Connexion à Google…", "Conectando ao Google…", "Verbindung mit Google…", "Подключение к Google…") }
+    var gsSignInAgain: String { t("Google 다시 로그인", "Sign in to Google again", "Google に再ログイン", "Volver a iniciar sesión en Google", "Se reconnecter à Google", "Entrar no Google novamente", "Erneut bei Google anmelden", "Снова войти в Google") }
+    var gsAutoSyncNote: String { t("자동 동기화는 앱이 실행 중일 때 30분 간격으로 확인합니다. 변경된 진행만 업로드합니다.",
+                                   "While the app is running, sync is checked every 30 minutes. Only changed progress is uploaded.",
+                                   "アプリの実行中は30分ごとに同期を確認します。変更された進行だけをアップロードします。",
+                                   "Con la app abierta, se comprueba cada 30 minutos. Solo se sube el progreso modificado.",
+                                   "Quand l’app est ouverte, la synchro est vérifiée toutes les 30 minutes. Seule la progression modifiée est envoyée.",
+                                   "Com o app aberto, a sincronização é verificada a cada 30 minutos. Só o progresso alterado é enviado.",
+                                   "Während die App läuft, wird alle 30 Minuten synchronisiert. Nur geänderter Fortschritt wird hochgeladen.",
+                                   "Пока приложение запущено, синхронизация проверяется каждые 30 минут. Загружается только изменённый прогресс.") }
+    var gsConfirmTitle: String { t("선택한 진행으로 이어갈까요?", "Continue with this progress?", "選んだ進行で続けますか？", "¿Continuar con este progreso?", "Continuer avec cette progression ?", "Continuar com este progresso?", "Mit diesem Fortschritt fortfahren?", "Продолжить с этим прогрессом?") }
+    var gsConfirmBody: String { t("클라우드에는 선택한 진행이 기록됩니다. Mac 진행을 교체하기 전에는 로컬 백업을 만듭니다. 동시 진행한 두 세이브의 아이템이나 경험치를 합치지는 않습니다.",
+                                  "The chosen progress will be recorded in the cloud. Local progress is backed up before replacement. Items and experience from concurrent saves are not added together.",
+                                  "選んだ進行がクラウドに記録されます。Mac の進行を置き換える前にローカルバックアップを作成します。同時に進めた2つのセーブのアイテムや経験値は合算しません。",
+                                  "El progreso elegido se guardará en la nube. Se hace una copia local antes de reemplazar. Los objetos y la experiencia de partidas simultáneas no se suman.",
+                                  "La progression choisie sera enregistrée dans le cloud. Une sauvegarde locale est faite avant remplacement. Objets et expérience de sauvegardes parallèles ne s’additionnent pas.",
+                                  "O progresso escolhido será registrado na nuvem. Um backup local é feito antes da substituição. Itens e experiência de salvamentos simultâneos não são somados.",
+                                  "Der gewählte Fortschritt wird in der Cloud gespeichert. Vor dem Ersetzen wird lokal gesichert. Items und Erfahrung paralleler Spielstände werden nicht addiert.",
+                                  "Выбранный прогресс будет записан в облако. Перед заменой создаётся локальная копия. Предметы и опыт параллельных сохранений не суммируются.") }
+    var gsCancel: String { t("취소", "Cancel", "キャンセル", "Cancelar", "Annuler", "Cancelar", "Abbrechen", "Отмена") }
+    var gsContinue: String { t("계속", "Continue", "続ける", "Continuar", "Continuer", "Continuar", "Fortfahren", "Продолжить") }
+}

@@ -1,5 +1,11 @@
 import Foundation
 
+/// A persistent source epoch and its monotonic usage total, independent of calendar days.
+struct UsageGrowthCounter: Decodable, Sendable {
+    var sourceID: String
+    var totalTokens: Int
+}
+
 // MARK: - ccusage daily
 
 struct DailyUsage: Decodable, Sendable {
@@ -14,6 +20,9 @@ struct DailyUsage: Decodable, Sendable {
     var usageCost: UsageCost { UsageCost(amount: totalCost, coverage: costCoverage) }
     /// totalTokens per source model when the provider reports it (nil otherwise).
     var models: [String: Int]?
+    var growthCounter: UsageGrowthCounter? = nil
+    var growthCounters: [UsageGrowthCounter] = []
+    var allGrowthCounters: [UsageGrowthCounter] { (growthCounter.map { [$0] } ?? []) + growthCounters }
 
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
@@ -33,11 +42,14 @@ struct DailyUsage: Decodable, Sendable {
         costCoverage = try c.decodeIfPresent(CostCoverage.self, forKey: .costCoverage)
             ?? (totalTokens == 0 ? .empty : (totalCost > 0 ? .estimate : .unavailable))
         models = try c.decodeIfPresent([String: Int].self, forKey: .models)
+        growthCounter = try c.decodeIfPresent(UsageGrowthCounter.self, forKey: .growthCounter)
+        growthCounters = try c.decodeIfPresent([UsageGrowthCounter].self, forKey: .growthCounters) ?? []
     }
 
     init(date: String, inputTokens: Int, outputTokens: Int,
          cacheCreationTokens: Int, cacheReadTokens: Int, totalTokens: Int, totalCost: Double,
-         models: [String: Int]? = nil, costCoverage: CostCoverage = .source) {
+         models: [String: Int]? = nil, costCoverage: CostCoverage = .source,
+         growthCounter: UsageGrowthCounter? = nil) {
         self.date = date
         self.inputTokens = inputTokens
         self.outputTokens = outputTokens
@@ -47,9 +59,11 @@ struct DailyUsage: Decodable, Sendable {
         self.totalCost = totalCost
         self.costCoverage = costCoverage
         self.models = models
+        self.growthCounter = growthCounter
     }
 
     private enum CodingKeys: String, CodingKey {
+        case growthCounter, growthCounters
         case costCoverage
         case date, period, inputTokens, outputTokens, cacheCreationTokens, cacheReadTokens
         case cachedInputTokens, totalTokens, totalCost, costUSD, models

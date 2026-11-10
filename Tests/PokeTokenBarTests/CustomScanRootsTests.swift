@@ -356,7 +356,11 @@ final class CustomScanRootsTests: XCTestCase {
         let suite = "ptb.scan.sweep.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suite)!
         defer { defaults.removePersistentDomain(forName: suite) }
+        // Aggregate providers read one app-managed summary file under AppStatePaths, not
+        // user transcript roots, so there is no scan-root key for them to consult.
+        let aggregateProviders: Set<String> = ["remote_claude", "remote_codex", "cloud_usage"]
         let ids = UsageStore(autoRefresh: false, defaults: defaults).registeredProviderIDs
+            .filter { !aggregateProviders.contains($0) }
         XCTAssertFalse(ids.isEmpty)
 
         let sources = URL(fileURLWithPath: #filePath)

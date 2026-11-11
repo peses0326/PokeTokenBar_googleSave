@@ -1,5 +1,27 @@
 <div align="center">
 
+<img src="assets/googlesave/logo.png" width="96" alt="PokeTokenBar_GoogleSave ロゴ"> &nbsp; <img src="assets/googlesave/egg.png" width="96" alt="ドットのタマゴ">
+
+## PokeTokenBar_GoogleSave
+
+Google ドライブへのセーブ同期を加えた PokeTokenBar の個人フォークです。
+
+</div>
+
+- **Google ドライブ セーブ同期**: 自分のドライブの `PokeTokenBar_Save` に進行をバックアップし（`drive.file` 権限のみ）、複数の Mac で続けられます。
+- **逃がす代わりに預ける**: タマゴを買うと、いまのポケモンは進行そのままで預けられます。図鑑の右クリックでまた育てたり逃がしたりできます。
+- **タマゴの一時停止**: タマゴを温めている途中で預けたポケモンを呼び戻すとタマゴは止まり、そのポケモンを預け直すと再開します。
+- **重複なし**: 預かり中の種類はタマゴから色違いでしか出ません。
+- **見た目の選択**: 育てているポケモンを、すでに到達した進化段階の姿で表示できます。
+- **タマゴ 30% オフ**: 700M / 1.75B / 2.8B。
+
+ビルド: `python3 scripts/build-google-preview.py --google-client-id 'YOUR_CLIENT_ID.apps.googleusercontent.com'` → `build/google-preview/PokeTokenBar_GoogleSave.app`。
+[プライバシーポリシー](https://peses0326.github.io/PokeTokenBar_googleSave/privacy.html) · [利用規約](https://peses0326.github.io/PokeTokenBar_googleSave/terms.html)
+
+---
+
+<div align="center">
+
 <img src="assets/icon.png" width="128" alt="PokeTokenBar アイコン">
 
 # PokeTokenBar

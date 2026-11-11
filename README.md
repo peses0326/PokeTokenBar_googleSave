@@ -1,5 +1,27 @@
 <div align="center">
 
+<img src="assets/googlesave/logo.png" width="96" alt="PokeTokenBar_GoogleSave logo"> &nbsp; <img src="assets/googlesave/egg.png" width="96" alt="Pixel egg">
+
+## PokeTokenBar_GoogleSave
+
+A personal fork of PokeTokenBar with Google Drive save sync.
+
+</div>
+
+- **Google Drive save sync**: progress is backed up to `PokeTokenBar_Save` in your own Drive (`drive.file` scope only) and follows you across Macs.
+- **Storage instead of release**: buying an egg stores your current Pokémon with its full progress. Raise it again or release it from the Pokédex context menu.
+- **Paused eggs**: raising a stored Pokémon while incubating pauses the egg. It resumes when that Pokémon goes back into storage.
+- **No duplicates**: a species in storage only hatches again as a shiny.
+- **Pick a look**: show the raised Pokémon as any stage it has already reached.
+- **Cheaper eggs**: 700M / 1.75B / 2.8B, 30% off.
+
+Build: `python3 scripts/build-google-preview.py --google-client-id 'YOUR_CLIENT_ID.apps.googleusercontent.com'` → `build/google-preview/PokeTokenBar_GoogleSave.app`.
+[Privacy Policy](https://peses0326.github.io/PokeTokenBar_googleSave/privacy.html) · [Terms of Service](https://peses0326.github.io/PokeTokenBar_googleSave/terms.html)
+
+---
+
+<div align="center">
+
 <img src="assets/icon.png" width="128" alt="PokeTokenBar icon">
 
 # PokeTokenBar

@@ -1,5 +1,27 @@
 <div align="center">
 
+<img src="assets/googlesave/logo.png" width="96" alt="PokeTokenBar_GoogleSave 로고"> &nbsp; <img src="assets/googlesave/egg.png" width="96" alt="픽셀 알">
+
+## PokeTokenBar_GoogleSave
+
+Google Drive 세이브 동기화를 더한 PokeTokenBar 개인 포크입니다.
+
+</div>
+
+- **Google Drive 세이브 동기화**: 내 Drive의 `PokeTokenBar_Save` 폴더에 진행을 백업해(`drive.file` 권한만 사용) 여러 Mac에서 이어 갑니다.
+- **놓아주기 대신 보관**: 알을 사면 지금 포켓몬이 진행 그대로 보관됩니다. 도감 우클릭으로 다시 키우거나 놓아줄 수 있습니다.
+- **알 일시정지**: 알을 품는 중에 보관 포켓몬을 불러오면 알이 멈췄다가, 그 포켓몬을 다시 보관하면 이어서 진행됩니다.
+- **중복 방지**: 보관 중인 종은 알에서 이로치로만 다시 나옵니다.
+- **모습 선택**: 키우는 포켓몬을 이미 도달한 진화 단계의 모습으로 보이게 할 수 있습니다.
+- **알 30% 할인**: 700M / 1.75B / 2.8B.
+
+빌드: `python3 scripts/build-google-preview.py --google-client-id 'YOUR_CLIENT_ID.apps.googleusercontent.com'` → `build/google-preview/PokeTokenBar_GoogleSave.app`.
+[개인정보처리방침](https://peses0326.github.io/PokeTokenBar_googleSave/privacy.html) · [서비스 약관](https://peses0326.github.io/PokeTokenBar_googleSave/terms.html)
+
+---
+
+<div align="center">
+
 <img src="assets/icon.png" width="128" alt="PokeTokenBar 아이콘">
 
 # PokeTokenBar

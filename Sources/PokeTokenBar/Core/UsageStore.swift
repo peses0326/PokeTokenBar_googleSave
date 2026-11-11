@@ -342,6 +342,20 @@ final class UsageStore {
         }
     }
 
+    /// Sources with a cumulative counter must never also earn daily growth.
+    var dailyGrowthTokensByProvider: [String: Int] {
+        let cumulativeIDs = Set(snapshots.filter { !($0.today?.allGrowthCounters.isEmpty ?? true) }.map(\.providerID))
+        return todayTokensByProvider.filter { !cumulativeIDs.contains($0.key) }
+    }
+
+    var cumulativeGrowthTokensBySource: [String: Int] {
+        snapshots.reduce(into: [:]) { result, snapshot in
+            for counter in snapshot.today?.allGrowthCounters ?? [] {
+                result[counter.sourceID] = max(result[counter.sourceID] ?? 0, counter.totalTokens)
+            }
+        }
+    }
+
     /// 사용량 데이터(스냅샷)가 하나라도 있는가 — companion sleep 판정용
     var hasUsageData: Bool { !snapshots.isEmpty }
 
@@ -897,7 +911,8 @@ final class UsageStore {
         LocalCursorProvider(), LocalGrokProvider(), LocalCopilotProvider(), LocalKiroProvider(),
         LocalPiProvider(),
         LocalOmpProvider(), LocalOmoProvider(), LocalAsideProvider(), LocalKimiCodeProvider(),
-        LocalDevinProvider(),
+        LocalDevinProvider(), RemoteSummaryProvider(kind: .claude), RemoteSummaryProvider(kind: .codex),
+        CloudUsageProvider(),
     ],
          // 세션 키 우선, 없거나 죽었으면 기존 Keychain/파일 OAuth 경로. 두 인자는 같은
          // SessionKeyLimitsProvider 인스턴스를 봐야 한다 — 설정 화면이 고른 조직을 조회 경로가 써야 하므로.

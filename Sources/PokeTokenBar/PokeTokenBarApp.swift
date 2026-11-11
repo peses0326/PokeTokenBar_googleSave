@@ -23,6 +23,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
     private var store: UsageStore!
     private var companion: CompanionStore!
     private var updater: UpdateChecker!
+    private var cloudSync: GoogleCloudSync!
+    private var previewSettingsWindow: NSWindow?
     private var floatingPet: FloatingPetController!
     private let navigation = PopoverNavigation()
 
@@ -95,16 +97,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         // 크래시·OOM·강제종료·런치실패를 로그에 남기는 전역 처리. 가능한 이르게(초기 크래시도 잡히게).
         CrashReporter.install(
             version: Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "?")
-        NSApp.setActivationPolicy(.accessory)
+        NSApp.setActivationPolicy(AppEnv.isCloudPreview ? .regular : .accessory)
         // Tooltips show 40% sooner than AppKit's 1 s default; the app's hover hints are short and
         // the popover closes quickly. Registration domain only, so a user `defaults write` still wins.
         UserDefaults.standard.register(defaults: ["NSInitialToolTipDelay": 600])
-        Self.migrateLegacyStorageIfNeeded()   // TokenMac → PokeTokenBar 리네임: 기존 companion/캐시 보존
-        LoginItem.migrateFromLegacyLoginItemIfNeeded()   // 로그인아이템 → KeepAlive 에이전트(크래시 자동 재실행)
+        if !AppEnv.isCloudPreview {
+            Self.migrateLegacyStorageIfNeeded()
+            LoginItem.migrateFromLegacyLoginItemIfNeeded()
+        }
         store = UsageStore()
         companion = CompanionStore()
         Task { await companion.preparePokemonProfiles() }
-        updater = UpdateChecker()
+        cloudSync = GoogleCloudSync()
+        updater = AppEnv.isCloudPreview ? UpdateChecker(fetchLatest: { nil }) : UpdateChecker()
         store.localizationLanguage = companion.language   // 알림 현지화용 미러 시드
         store.onRefresh = { [weak self] in self?.onStoreRefreshed() }   // 한도 로드 후 companion·사탕 지급
         floatingPet = FloatingPetController(
@@ -135,6 +140,39 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         observeDisplaySleep()
         observePowerState()
         applyState()
+        if AppEnv.isCloudPreview { showPreviewSettingsWindow() }
+    }
+
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        guard AppEnv.isCloudPreview else { return true }
+        showPreviewSettingsWindow()
+        return false
+    }
+
+    /// The production app stays menu-bar-only. A preview needs a discoverable setup
+    /// surface, including on relaunch when the menu-bar item is hidden by macOS.
+    private func showPreviewSettingsWindow() {
+        if let window = previewSettingsWindow {
+            window.makeKeyAndOrderFront(nil)
+            NSApp.activate(ignoringOtherApps: true)
+            return
+        }
+        let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 420, height: 540),
+                              styleMask: [.titled, .closable, .miniaturizable], backing: .buffered, defer: false)
+        window.title = "PokeTokenBar Google Preview — Settings"
+        window.isReleasedWhenClosed = false
+        window.contentViewController = NSHostingController(rootView: SettingsView(
+            onClose: { [weak self] in self?.previewSettingsWindow?.close() },
+            onChooseRepresentative: { [weak self] in
+                self?.previewSettingsWindow?.close()
+                self?.navigation.openRepresentativeDex()
+                self?.openPopover()
+            }, cloudSync: cloudSync)
+            .environment(store).environment(companion).environment(updater))
+        window.center()
+        previewSettingsWindow = window
+        window.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
     }
 
     /// Observe usage settings and the enabled growth text together, including companion-only changes.
@@ -270,13 +308,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
     private func updateCompanion() {
         companion.alwaysFacesBack = store.alwaysFacesBack
         companion.update(
-            todayTokensByProvider: store.todayTokensByProvider,
+            todayTokensByProvider: store.dailyGrowthTokensByProvider,
             todayDate: LocalUsageReader.todayKey(),
             monthTotal: store.monthTotalTokens,
             burnTier: store.burnTier,
             limitWarning: store.isLimitWarning,
             hasUsageData: store.hasUsageData,
-            timeSinceLastUsage: store.timeSinceLastUsage())
+            timeSinceLastUsage: store.timeSinceLastUsage(),
+            cumulativeTokensBySource: store.cumulativeGrowthTokensBySource)
     }
 
     /// 매 refresh 완료 훅 — companion 갱신 + 사탕 지급(한도가 신선한 시점). 지급을 여기 묶는 이유는
@@ -284,6 +323,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
     private func onStoreRefreshed() {
         updateCompanion()
         companion.grantCandies(from: store.candyEligibleWindows, limitsReady: store.limitsReady)
+        cloudSync.syncIfDue(companion: companion, usage: store)
     }
 
     // MARK: 메뉴바 애니메이션
@@ -585,7 +625,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
 
     private func buildPopoverContent() {
         popover.contentViewController = NSHostingController(
-            rootView: PopoverView()
+            rootView: PopoverView(cloudSync: cloudSync)
                 .environment(store).environment(companion).environment(updater).environment(navigation))
     }
 

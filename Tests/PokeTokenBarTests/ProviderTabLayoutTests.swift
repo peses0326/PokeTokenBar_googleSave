@@ -23,7 +23,8 @@ final class ProviderTabLayoutTests: XCTestCase {
          ("antigravity", "Antigravity"), ("opencode", "OpenCode"), ("hermes", "Hermes Agent"),
          ("cursor", "Cursor"), ("grok", "Grok"), ("copilot", "Copilot"), ("kiro", "Kiro"),
          ("pi", "Pi"), ("omp", "omp"), ("omo", "omo"), ("aside", "Aside"), ("kimi_code", "Kimi Code"),
-         ("devin", "Devin")]
+         ("devin", "Devin"), ("remote_claude", "Server Claude"), ("remote_codex", "Server Codex"),
+         ("cloud_usage", "Google Cloud Usage")]
             .map { snapshot($0.0, $0.1) }
     }
 

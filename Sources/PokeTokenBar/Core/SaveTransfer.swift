@@ -149,6 +149,7 @@ enum SaveTransfer {
         s.claimedTodayTokensByProvider = s.claimedTodayTokensByProvider?.reduce(into: [:]) { result, entry in
             result[entry.key] = clampToken(entry.value)
         }
+        s.claimedCumulativeTokens = s.claimedCumulativeTokens.mapValues { min(max(0, $0), maxTokenValue) }
         // 알 보증은 "지금 품고 있는 알"에만 붙는 값이라 활성 포켓몬과 공존할 수 없다. 손편집·구버전
         // 조합으로 둘 다 들어오면 그 보증이 다음 알로 새어 영구 프리미엄이 되므로 여기서 떨군다.
         // 그 보증으로 미리 뽑아둔 종(pendingHatchID)도 함께 버린다 — 보증만 지우면 졸업 후 받는 **무료**
@@ -215,6 +216,9 @@ enum SaveTransfer {
                                      hasUsageData: Bool) -> CompanionState {
         var state = imported
         state.language = current.language
+        // Imported device counters cannot replay growth already claimed on this Mac.
+        // Unknown sources seed on their next observation.
+        state.claimedCumulativeTokens = current.claimedCumulativeTokens
         state.candyGrantTier = mergedGrantTier(imported.candyGrantTier, current.candyGrantTier)
         state.candyWindowEpoch = mergedWindowEpochs(
             imported.candyWindowEpoch, imported.candyGrantTier,

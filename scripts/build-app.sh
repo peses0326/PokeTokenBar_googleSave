@@ -32,6 +32,10 @@ echo "   archs: $(lipo -archs "$APP/Contents/MacOS/$APP_NAME")"
 # 심볼 strip — 릴리스 바이너리 1.84MB → 0.80MB(-57%). codesign 전에 수행(서명 무효화 방지).
 strip -rSTx "$APP/Contents/MacOS/$APP_NAME" 2>/dev/null || strip -rSx "$APP/Contents/MacOS/$APP_NAME"
 cp assets/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
+RESOURCE_BUNDLE="$(swift build -c release --arch "${ARCHS[0]}" --show-bin-path)/PokeTokenBar_PokeTokenBar.bundle"
+if [[ -d "$RESOURCE_BUNDLE" ]]; then
+    cp -R "$RESOURCE_BUNDLE" "$APP/Contents/Resources/"
+fi
 
 cat > "$APP/Contents/Info.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
@@ -104,6 +108,10 @@ else
     codesign --force -s - "$APP"
 fi
 
+if [[ "${PTB_SKIP_INSTALL:-0}" == "1" ]]; then
+    echo "완료: 로컬 번들 $APP (설치 생략)"
+    exit 0
+fi
 echo "==> 기존 인스턴스 종료 + /Applications 설치"
 pkill -x "$APP_NAME" 2>/dev/null || true
 rm -rf "/Applications/$APP_NAME.app"

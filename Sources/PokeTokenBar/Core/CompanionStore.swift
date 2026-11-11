@@ -114,6 +114,7 @@ final class CompanionStore {
         AppStatePaths.directory().appendingPathComponent("companion-state.json")
     }
 
+
     // MARK: 파생값 (UI)
 
     var language: AppLanguage { state.language }
@@ -866,12 +867,13 @@ final class CompanionStore {
     /// It comes from the slower enrichment scan, so a rise in today's total seen here counts as usage at once.
     func update(todayTokensByProvider: [String: Int], todayDate: String, monthTotal: Int,
                 burnTier: BurnTier, limitWarning: Bool, hasUsageData: Bool,
-                timeSinceLastUsage: TimeInterval? = nil) {
+                timeSinceLastUsage: TimeInterval? = nil,
+                cumulativeTokensBySource: [String: Int] = [:]) {
         let todayTokens = todayTokensByProvider.values.reduce(0, +)
         // `hasUsageData`는 표시용 snapshot 존재 여부이고, 이 map은 오늘 날짜가 확인된
         // provider 데이터만 담는다. stale snapshot이나 today == nil carrier만 있는 refresh는
         // ledger의 기준점을 움직일 수 있는 관측으로 취급하지 않는다.
-        let hasCurrentProviderData = hasUsageData && !todayTokensByProvider.isEmpty
+        let hasCurrentProviderData = hasUsageData && (!todayTokensByProvider.isEmpty || !cumulativeTokensBySource.isEmpty)
         let idle = effectiveIdle(timeSinceLastUsage: timeSinceLastUsage, todayDate: todayDate,
                                  todayTokens: todayTokens, hasCurrentProviderData: hasCurrentProviderData)
         if !state.installBaselineSet {
@@ -960,6 +962,23 @@ final class CompanionStore {
                         }
                     }
                 }
+            }
+        }
+        // A first sighting seeds the source; subsequent increases earn growth even if
+        // yesterday's usage arrived after midnight. Retain high-water marks on regressions.
+        if hasUsageData {
+            var delta = 0
+            for (source, total) in cumulativeTokensBySource where total >= 0 && total <= SaveTransfer.maxTokenValue {
+                if let previous = state.claimedCumulativeTokens[source] {
+                    delta += max(0, total - previous)
+                    state.claimedCumulativeTokens[source] = max(previous, total)
+                } else {
+                    state.claimedCumulativeTokens[source] = total
+                }
+            }
+            if delta > 0 {
+                state.usedSinceInstall += delta
+                if state.active == nil { state.eggUsage += delta } else { applyUsage(delta) }
             }
         }
         // 이벤트(진화/졸업/부화) 창 만료 — .levelUp 창이 끝날 때 문구 플래그를 함께 정리한다.
@@ -2018,13 +2037,29 @@ final class CompanionStore {
     /// 백업을 못 남기면 **적용하지 않고** throw 한다 — 확인창이 "직전 상태가 남는다"고 약속하므로,
     /// 그 약속을 못 지키는 채로 덮어쓰면 사용자는 되돌릴 수단 없이 진행을 잃는다.
     func applySave(_ envelope: SaveEnvelope, todayTokensByProvider: [String: Int], todayDate: String,
-                   hasUsageData: Bool) throws {
+                   hasUsageData: Bool, cloudUsageClaims: [String: Int]? = nil,
+                   cloudGameSettings: CloudGameSettings? = nil) throws {
         try backupStateBeforeImport()
-        state = SaveTransfer.rebasedForThisDevice(envelope.state,
-                                                  current: state,
-                                                  todayTokensByProvider: todayTokensByProvider,
-                                                  todayDate: todayDate,
-                                                  hasUsageData: hasUsageData)
+        var incoming = SaveTransfer.rebasedForThisDevice(envelope.state,
+                                                        current: state,
+                                                        todayTokensByProvider: todayTokensByProvider,
+                                                        todayDate: todayDate,
+                                                        hasUsageData: hasUsageData)
+        if let cloudUsageClaims {
+            incoming.claimedCumulativeTokens = cloudUsageClaims.mapValues { min(SaveTransfer.maxTokenValue, max(0, $0)) }
+        }
+        // A cloud acknowledgement must never precede a durable save. Manual imports
+        // share this boundary; failed writes leave the current in-memory game untouched.
+        try JSONEncoder().encode(incoming).write(to: fileURL, options: .atomic)
+        if let cloudGameSettings {
+            // Imported banked growth is already measured at the remote difficulty;
+            // installing that difficulty must not rescale those credits a second time.
+            growthDifficulty = cloudGameSettings.growthDifficulty
+            shopDifficulty = cloudGameSettings.shopDifficulty
+            defaults.set(growthDifficulty, forKey: "growthDifficulty")
+            defaults.set(shopDifficulty, forKey: "shopDifficulty")
+        }
+        state = incoming
         // 이전 개체 기준으로 진행 중이던 비동기·연출을 전부 무효화한다. activeGeneration 을 올리지
         // 않으면 먼저 떠 있던 라인 로드가 완료되며 새로 불러온 개체를 덮어쓴다.
         activeGeneration += 1

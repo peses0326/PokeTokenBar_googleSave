@@ -677,6 +677,8 @@ struct CompanionState: Codable, Sendable {
     /// 오늘 보고한 프로바이더가 없는 정상 상태와 구분되어야 하므로 `nil`과 별도로 유지한다.
     /// 키는 `UsageProvider.id`를 그대로 사용한다.
     var claimedTodayTokensByProvider: [String: Int]? = nil
+    /// Source-epoch high-water marks survive midnight, sleep and app restarts.
+    var claimedCumulativeTokens: [String: Int] = [:]
     var lastDate = ""
     // 현재 포켓몬(없으면 알)
     var active: MonState?
@@ -730,6 +732,7 @@ struct CompanionState: Codable, Sendable {
             claimedTodayTokensByProvider = nil
         }
         lastDate           = c.lenient(String.self, forKey: .lastDate, default: "")
+        claimedCumulativeTokens = c.lenient([String: Int].self, forKey: .claimedCumulativeTokens, default: [:])
         // active 손상(빈 pathIDs 등) → 알로 폴백하되 도감·인벤토리는 보존.
         active             = c.lenientOptional(MonState.self, forKey: .active)
         representativeSpeciesID = c.lenientOptional(Int.self, forKey: .representativeSpeciesID)

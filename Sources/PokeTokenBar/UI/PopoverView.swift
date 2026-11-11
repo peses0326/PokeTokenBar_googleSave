@@ -85,6 +85,7 @@ final class PopoverNavigation {
 
 @MainActor
 struct PopoverView: View {
+    var cloudSync: GoogleCloudSync? = nil
     @Environment(UsageStore.self) private var store
     @Environment(CompanionStore.self) private var companion
     @Environment(UpdateChecker.self) private var updater
@@ -105,7 +106,8 @@ struct PopoverView: View {
                         nav.expandAdvancedOnOpen = false
                     },
                     onChooseRepresentative: { nav.openRepresentativeDex() },
-                    startExpanded: nav.expandAdvancedOnOpen
+                    startExpanded: nav.expandAdvancedOnOpen,
+                    cloudSync: cloudSync
                 )
                     .environment(store)
                     .environment(companion)
@@ -1216,6 +1218,9 @@ struct MonthDailyTrend: View {
         Color(red: 0.40, green: 0.48, blue: 0.80),
         Color(red: 0.96, green: 0.58, blue: 0.22),
         Color(red: 0.76, green: 0.58, blue: 0.38),
+        Color(red: 0.55, green: 0.70, blue: 0.95),
+        Color(red: 0.90, green: 0.66, blue: 0.85),
+        Color(red: 0.50, green: 0.85, blue: 0.75),
     ]
 
     var body: some View {

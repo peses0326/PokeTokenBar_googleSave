@@ -4,18 +4,20 @@
 
 ## PokeTokenBar_GoogleSave
 
-Google ドライブへのセーブ同期を加えた PokeTokenBar の個人フォークです。
+**オリジナルの [PokeTokenBar](https://github.com/chattymin/PokeTokenBar) に必要な機能を追加したバージョンです。**
+このセクションより下はオリジナルの README です。
 
 </div>
 
-- **Google ドライブ セーブ同期**: 自分のドライブの `PokeTokenBar_Save` に進行をバックアップし（`drive.file` 権限のみ）、複数の Mac で続けられます。
-- **逃がす代わりに預ける**: タマゴを買うと、いまのポケモンは進行そのままで預けられます。図鑑の右クリックでまた育てたり逃がしたりできます。
-- **タマゴの一時停止**: タマゴを温めている途中で預けたポケモンを呼び戻すとタマゴは止まり、そのポケモンを預け直すと再開します。
-- **重複なし**: 預かり中の種類はタマゴから色違いでしか出ません。
-- **見た目の選択**: 育てているポケモンを、すでに到達した進化段階の姿で表示できます。
-- **タマゴ 30% オフ**: 700M / 1.75B / 2.8B。
+**オリジナルとの違い**
 
-ビルド: `python3 scripts/build-google-preview.py --google-client-id 'YOUR_CLIENT_ID.apps.googleusercontent.com'` → `build/google-preview/PokeTokenBar_GoogleSave.app`。
+| | オリジナル PokeTokenBar | PokeTokenBar_GoogleSave |
+|---|---|---|
+| セーブ同期 | セーブの手動書き出し/読み込み | 自分の Google ドライブの `PokeTokenBar_Save` に自動バックアップ（`drive.file` 権限のみ）、別の Mac で続きから |
+| アプリの区別 | `PokeTokenBar.app` | `PokeTokenBar_GoogleSave.app`：バンドル ID とデータフォルダが別なのでオリジナルと併用可能 |
+| タマゴの価格 | 1B / 2.5B / 4B | 700M / 1.75B / 2.8B（30% オフ） |
+
+ビルド: `python3 scripts/build-google-preview.py --google-client-id 'YOUR_CLIENT_ID.apps.googleusercontent.com'` → `build/google-preview/PokeTokenBar_GoogleSave.app`
 [プライバシーポリシー](https://peses0326.github.io/PokeTokenBar_googleSave/privacy.html) · [利用規約](https://peses0326.github.io/PokeTokenBar_googleSave/terms.html)
 
 ---

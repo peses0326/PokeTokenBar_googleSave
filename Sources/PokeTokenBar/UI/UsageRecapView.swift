@@ -25,7 +25,7 @@ struct RecapContent {
                                 now: now, calendar: calendar)
         // The Pokémon being raised right now, not the pinned representative: the recap is about
         // usage that just happened, so it shows who lived it.
-        companionSpeciesID = companion.displaySpeciesID
+        companionSpeciesID = companion.currentSpeciesID
         companionShiny = companion.currentIsShiny
         companionForm = companion.currentForm
         graduates = recap.graduated.prefix(4).map { entry in

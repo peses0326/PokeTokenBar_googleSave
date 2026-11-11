@@ -482,16 +482,6 @@ struct MonState: Codable, Sendable {
     var dittoRevealed = false       // 위장 → 리빌(정체 공개) 전환 여부
     /// Prayers said over the egg this individual hatched from. Nil = none (and every pre-prayer save).
     var prayers: PrayerRecord?
-    /// Chosen appearance (모습 선택): a stage this individual has already reached, shown instead of the
-    /// current one. nil = follow the current stage. Growth and evolution are unaffected.
-    var appearanceID: Int?
-    /// Stages the player may pick: only reached ones (a stage unlocks in the Pokédex when reached).
-    var unlockedAppearanceIDs: [Int] { Array(pathIDs.prefix(stageIndex + 1)) }
-    /// What the menu bar, floating pet and Home draw.
-    var displayID: Int {
-        guard let appearanceID, unlockedAppearanceIDs.contains(appearanceID) else { return currentID }
-        return appearanceID
-    }
     /// 화면에 이로치로 보여도 되는가 — 위장 중 메타몽은 리빌 전까지 숨긴다. 표시 경로는 전부 이것만 쓴다.
     var displaysShiny: Bool { isShiny && (dittoDisguise == nil || dittoRevealed) }
     // pathIDs 가 비면(손상된 상태 파일) baseID 로 폴백 — 렌더마다 읽히므로 out-of-bounds 크래시 방지.
@@ -557,7 +547,6 @@ struct MonState: Codable, Sendable {
         dittoDisguise = try c.decodeIfPresent(Int.self, forKey: .dittoDisguise)
         dittoRevealed = try c.decodeIfPresent(Bool.self, forKey: .dittoRevealed) ?? false
         prayers = (try? c.decodeIfPresent(PrayerRecord.self, forKey: .prayers)) ?? nil
-        appearanceID = (try? c.decodeIfPresent(Int.self, forKey: .appearanceID)) ?? nil
         form = PokemonForm.resolved(baseID: baseID, form: PokemonForm.decoded(from: decoder, keys: "form", "unownForm"))
     }
 }

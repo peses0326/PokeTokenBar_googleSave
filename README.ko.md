@@ -4,18 +4,20 @@
 
 ## PokeTokenBar_GoogleSave
 
-Google Drive 세이브 동기화를 더한 PokeTokenBar 개인 포크입니다.
+**원본 [PokeTokenBar](https://github.com/chattymin/PokeTokenBar)에 필요한 기능을 추가한 버전입니다.**
+이 섹션 아래는 원본 README 내용입니다.
 
 </div>
 
-- **Google Drive 세이브 동기화**: 내 Drive의 `PokeTokenBar_Save` 폴더에 진행을 백업해(`drive.file` 권한만 사용) 여러 Mac에서 이어 갑니다.
-- **놓아주기 대신 보관**: 알을 사면 지금 포켓몬이 진행 그대로 보관됩니다. 도감 우클릭으로 다시 키우거나 놓아줄 수 있습니다.
-- **알 일시정지**: 알을 품는 중에 보관 포켓몬을 불러오면 알이 멈췄다가, 그 포켓몬을 다시 보관하면 이어서 진행됩니다.
-- **중복 방지**: 보관 중인 종은 알에서 이로치로만 다시 나옵니다.
-- **모습 선택**: 키우는 포켓몬을 이미 도달한 진화 단계의 모습으로 보이게 할 수 있습니다.
-- **알 30% 할인**: 700M / 1.75B / 2.8B.
+**원본과 다른 점**
 
-빌드: `python3 scripts/build-google-preview.py --google-client-id 'YOUR_CLIENT_ID.apps.googleusercontent.com'` → `build/google-preview/PokeTokenBar_GoogleSave.app`.
+| | 원본 PokeTokenBar | PokeTokenBar_GoogleSave |
+|---|---|---|
+| 세이브 동기화 | 세이브 파일 수동 내보내기/가져오기 | 내 Google Drive의 `PokeTokenBar_Save` 폴더에 자동 백업(`drive.file` 권한만 사용), 다른 Mac에서 이어 하기 |
+| 앱 구분 | `PokeTokenBar.app` | `PokeTokenBar_GoogleSave.app`: 번들 ID·데이터 폴더가 따로라 원본과 함께 설치 가능 |
+| 알 가격 | 1B / 2.5B / 4B | 700M / 1.75B / 2.8B (30% 할인) |
+
+빌드: `python3 scripts/build-google-preview.py --google-client-id 'YOUR_CLIENT_ID.apps.googleusercontent.com'` → `build/google-preview/PokeTokenBar_GoogleSave.app`
 [개인정보처리방침](https://peses0326.github.io/PokeTokenBar_googleSave/privacy.html) · [서비스 약관](https://peses0326.github.io/PokeTokenBar_googleSave/terms.html)
 
 ---

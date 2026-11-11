@@ -53,7 +53,10 @@ def main():
             "CFBundleName": name, "CFBundleDisplayName": name, "CFBundlePackageType": "APPL",
             "CFBundleShortVersionString": "0.3.0", "CFBundleVersion": "4",
             "LSMinimumSystemVersion": "14.0", "LSUIElement": True,
-            "NSHighResolutionCapable": True, "PTBCloudPreview": True}
+            "NSHighResolutionCapable": True, "PTBCloudPreview": True,
+            # Its own agent URL scheme, so coding-agent hooks reach this build and not the original app.
+            "CFBundleURLTypes": [{"CFBundleURLName": "io.github.peses0326.poketokenbar-gs.agent",
+                                  "CFBundleURLSchemes": ["poketokenbar-gs"]}]}
     if client_id:
         info["PTBGoogleOAuthClientID"] = client_id
         if client_secret:

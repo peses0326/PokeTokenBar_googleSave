@@ -12,6 +12,14 @@ enum AgentActivity: Equatable, Sendable {
 /// One parsed `poketokenbar://agent?state=<working|waiting|done|idle>[&message=<text>][&label=<name>]` URL.
 struct AgentActivityEvent: Equatable, Sendable {
     static let scheme = "poketokenbar"
+    /// Schemes this build answers: the default plus any it registers in `CFBundleURLTypes`, so a build
+    /// installed beside the original can claim its own scheme and the two never share agent URLs.
+    static let acceptedSchemes: Set<String> = registeredSchemes(in: Bundle.main.infoDictionary).union([scheme])
+
+    static func registeredSchemes(in info: [String: Any]?) -> Set<String> {
+        let types = info?["CFBundleURLTypes"] as? [[String: Any]] ?? []
+        return Set(types.flatMap { ($0["CFBundleURLSchemes"] as? [String]) ?? [] }.map { $0.lowercased() })
+    }
     static let host = "agent"
     /// Any app or web page can open the URL, so the message size is bounded here. These are size
     /// limits on untrusted input, not layout: `fittedBubbleBody` makes the text fit the bubble.
@@ -27,8 +35,8 @@ struct AgentActivityEvent: Equatable, Sendable {
     let label: String?
 
     /// Nil for any other scheme, host or state — unknown input is ignored, never an error.
-    init?(url: URL) {
-        guard url.scheme?.lowercased() == Self.scheme,
+    init?(url: URL, acceptedSchemes: Set<String> = Self.acceptedSchemes) {
+        guard let scheme = url.scheme?.lowercased(), acceptedSchemes.contains(scheme),
               url.host?.lowercased() == Self.host,
               let items = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems,
               let state = items.first(where: { $0.name == "state" })?.value?.lowercased()

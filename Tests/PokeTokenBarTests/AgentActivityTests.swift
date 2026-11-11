@@ -5,7 +5,7 @@ import XCTest
 /// everything it does not understand and keep the message plain and short.
 final class AgentActivityTests: XCTestCase {
     private func event(_ string: String) -> AgentActivity? {
-        URL(string: string).flatMap(AgentActivityEvent.init(url:))?.activity
+        URL(string: string).flatMap { AgentActivityEvent(url: $0) }?.activity
     }
 
     func testParsesEveryState() {
@@ -23,6 +23,18 @@ final class AgentActivityTests: XCTestCase {
         XCTAssertNil(event("poketokenbar://settings?state=done"), "unknown host")
         XCTAssertNil(event("poketokenbar:agent?state=done"), "no host")
         XCTAssertNil(event("https://agent?state=done"), "other scheme")
+    }
+
+    /// A side-by-side build registers its own scheme in Info.plist and must answer it,
+    /// while a scheme it does not register stays ignored.
+    func testAcceptsASchemeTheBundleRegisters() throws {
+        let info: [String: Any] = ["CFBundleURLTypes": [["CFBundleURLSchemes": ["PokeTokenBar-GS"]]]]
+        let schemes = AgentActivityEvent.registeredSchemes(in: info).union([AgentActivityEvent.scheme])
+        XCTAssertEqual(schemes, ["poketokenbar-gs", "poketokenbar"])
+        let url = try XCTUnwrap(URL(string: "poketokenbar-gs://agent?state=done&label=app"))
+        XCTAssertEqual(AgentActivityEvent(url: url, acceptedSchemes: schemes)?.activity, .done(message: nil))
+        XCTAssertNil(AgentActivityEvent(url: url, acceptedSchemes: [AgentActivityEvent.scheme]))
+        XCTAssertTrue(AgentActivityEvent.registeredSchemes(in: nil).isEmpty)
     }
 
     func testMessageIsKeptOnlyForBubbleStates() {

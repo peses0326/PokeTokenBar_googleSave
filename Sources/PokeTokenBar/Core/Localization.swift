@@ -2052,20 +2052,3 @@ extension L {
     var gsCancel: String { t("취소", "Cancel", "キャンセル", "Cancelar", "Annuler", "Cancelar", "Abbrechen", "Отмена") }
     var gsContinue: String { t("계속", "Continue", "続ける", "Continuar", "Continuer", "Continuar", "Fortfahren", "Продолжить") }
 }
-
-// MARK: Appearance (모습 선택)
-extension L {
-    var appearanceMenu: String { t("모습 선택", "Appearance", "見た目", "Apariencia", "Apparence", "Aparência", "Aussehen", "Облик") }
-    var appearanceFollowCurrent: String {
-        t("현재 단계 모습 따라가기", "Follow current stage", "現在の段階に合わせる", "Seguir la etapa actual",
-          "Suivre le stade actuel", "Seguir o estágio atual", "Aktueller Stufe folgen", "Как текущая стадия")
-    }
-    func appearanceShow(_ name: String) -> String {
-        t("\(name) 모습으로 보이기", "Look like \(name)", "\(name) の姿にする", "Verse como \(name)",
-          "Ressembler à \(name)", "Aparecer como \(name)", "Wie \(name) aussehen", "Выглядеть как \(name)")
-    }
-    var appearanceLocked: String {
-        t("??? · 진화하면 해금", "??? · unlocks when it evolves", "??? · 進化すると解放", "??? · se desbloquea al evolucionar",
-          "??? · débloqué à l’évolution", "??? · libera ao evoluir", "??? · nach Entwicklung frei", "??? · откроется после эволюции")
-    }
-}

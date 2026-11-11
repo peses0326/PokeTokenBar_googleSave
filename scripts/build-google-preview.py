@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build PokemonTokenBar_gs (Apple Silicon); never replace or launch the installed PokeTokenBar."""
+"""Build PokeTokenBar_gs (Apple Silicon); never replace or launch the installed PokeTokenBar."""
 import argparse
 import json
 import os
@@ -34,7 +34,7 @@ def main():
     products = args.products_dir.resolve() if args.products_dir else Path(subprocess.run(
         ["swift", "build", "-c", "release", "--build-system", "native", "--show-bin-path"],
         cwd=repo, check=True, stdout=subprocess.PIPE, text=True).stdout.strip())
-    name = "PokemonTokenBar_gs"
+    name = "PokeTokenBar_gs"
     app = (args.output_dir.resolve() if args.output_dir else repo / "build/google-preview") / (name + ".app")
     if app.exists():
         shutil.rmtree(app)
@@ -49,7 +49,7 @@ def main():
         raise RuntimeError("Cloud helper resource bundle missing; rebuild the package")
     shutil.copytree(bundle, resources / bundle.name)
     info = {"CFBundleExecutable": "PokeTokenBar", "CFBundleIconFile": "AppIcon",
-            "CFBundleIdentifier": "io.github.peses0326.pokemontokenbar-gs",
+            "CFBundleIdentifier": "io.github.peses0326.pokemontokenbar-gs",  # kept from the PokemonTokenBar_gs name so saves, settings and permissions carry on
             "CFBundleName": name, "CFBundleDisplayName": name, "CFBundlePackageType": "APPL",
             "CFBundleShortVersionString": "0.2.0", "CFBundleVersion": "3",
             "LSMinimumSystemVersion": "14.0", "LSUIElement": True,

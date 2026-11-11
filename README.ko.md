@@ -1,8 +1,8 @@
 <div align="center">
 
-<img src="assets/googlesave/logo.png" width="96" alt="PokemonTokenBar_gs 로고"> &nbsp; <img src="assets/googlesave/egg.png" width="96" alt="픽셀 알">
+<img src="assets/googlesave/logo.png" width="96" alt="PokeTokenBar_gs 로고"> &nbsp; <img src="assets/googlesave/egg.png" width="96" alt="픽셀 알">
 
-## PokemonTokenBar_gs
+## PokeTokenBar_gs
 
 **원본 [PokeTokenBar](https://github.com/chattymin/PokeTokenBar)에 필요한 기능을 추가한 버전입니다.**
 이 섹션 아래는 원본 README 내용입니다.
@@ -11,13 +11,13 @@
 
 **원본과 다른 점**
 
-| | 원본 PokeTokenBar | PokemonTokenBar_gs |
+| | 원본 PokeTokenBar | PokeTokenBar_gs |
 |---|---|---|
 | 세이브 동기화 | 세이브 파일 수동 내보내기/가져오기 | 내 Google Drive의 `PokeTokenBar_Save` 폴더에 자동 백업(`drive.file` 권한만 사용), 다른 Mac에서 이어 하기 |
-| 앱 구분 | `PokeTokenBar.app` | `PokemonTokenBar_gs.app`: 번들 ID·데이터 폴더가 따로라 원본과 함께 설치 가능 |
+| 앱 구분 | `PokeTokenBar.app` | `PokeTokenBar_gs.app`: 번들 ID·데이터 폴더가 따로라 원본과 함께 설치 가능 |
 | 알 가격 | 1B / 2.5B / 4B | 700M / 1.75B / 2.8B (30% 할인) |
 
-빌드: `python3 scripts/build-google-preview.py --google-client-id 'YOUR_CLIENT_ID.apps.googleusercontent.com'` → `build/google-preview/PokemonTokenBar_gs.app`
+빌드: `python3 scripts/build-google-preview.py --google-client-id 'YOUR_CLIENT_ID.apps.googleusercontent.com'` → `build/google-preview/PokeTokenBar_gs.app`
 [개인정보처리방침](https://peses0326.github.io/PokeTokenBar_googleSave/privacy.html) · [서비스 약관](https://peses0326.github.io/PokeTokenBar_googleSave/terms.html)
 
 ---

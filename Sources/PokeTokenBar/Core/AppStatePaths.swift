@@ -3,8 +3,10 @@ import Foundation
 /// Application Support state directory for PokeTokenBar files.
 /// `PTB_STATE_DIR` overrides the default for development/QA isolation.
 enum AppStatePaths {
-    /// State folder of the Google-sync build (`PTBCloudPreview`). It matches the app name and bundle id,
-    /// so the build never shares saves, settings or permissions with the original app or older previews.
+    /// State folder of the Google-sync build (`PTBCloudPreview`), shared with no other build so saves,
+    /// settings and permissions never mix with the original app or older previews. The app is now named
+    /// PokeTokenBar_gs; the folder and bundle id keep the earlier PokemonTokenBar_gs spelling so existing
+    /// saves and Google sign-in carry on.
     static let googleSyncFolderName = "PokemonTokenBar_gs"
 
     static func directory() -> URL {

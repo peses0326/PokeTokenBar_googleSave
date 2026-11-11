@@ -14,7 +14,7 @@ Google 로그인 → 본인 계정 선택 → Drive 권한 동의
 ## 사용자가 할 일
 
 1. 기존 앱의 세이브 내보내기 파일을 보관한다. 기존 앱은 삭제하지 않는다.
-2. PokemonTokenBar_gs 앱에서 진행이 정상적으로 불러와졌는지 확인한다. 이미 불러온 진행은 같은 데이터 폴더에 유지된다.
+2. PokeTokenBar_gs 앱에서 진행이 정상적으로 불러와졌는지 확인한다. 이미 불러온 진행은 같은 데이터 폴더에 유지된다.
 3. 설정 → Google 동기화 → **Google 로그인**을 누른다.
 4. 브라우저에서 본인 Google 계정을 선택하고, 앱이 사용하는 Drive 파일 저장 권한에 동의한다.
 5. 앱에 계정 이메일·동기화 시각이 나타나는지 확인한다. **내 Drive의 세이브 폴더 열기**로 실제 파일을 볼 수 있다.
@@ -70,7 +70,7 @@ OAuth 앱이 Testing 상태이면 Drive 권한을 가진 refresh token이 7일 �
 기존 PokeTokenBar 2.5.7 앱은 교체하지 않는다. 테스트 앱은 별도 앱 식별자와 데이터 폴더를 사용한다.
 
 - 기존: `~/Library/Application Support/PokeTokenBar/`
-- PokemonTokenBar_gs: `~/Library/Application Support/PokemonTokenBar_gs/` (번들 ID `io.github.peses0326.pokemontokenbar-gs`)
+- PokeTokenBar_gs: `~/Library/Application Support/PokemonTokenBar_gs/` (번들 ID `io.github.peses0326.pokemontokenbar-gs`). 앱 이름은 PokeTokenBar_gs 로 바뀌었지만, 폴더와 번들 ID는 기존 세이브·로그인·권한을 유지하려고 이전 표기(PokemonTokenBar_gs)를 그대로 쓴다. Google 동의 화면의 앱 이름도 `PokeTokenBar_gs` 이다.
 
 이 앱은 이전 프리뷰(PokeTokenBar Google Preview, `PokeTokenBar-GooglePreview/`)의 데이터를 **자동으로 가져오지 않는다**. 번들 ID·데이터 폴더·설정·권한을 원본 앱이나 이전 프리뷰와 섞지 않기 위해서다. 진행은 이전 앱에서 내보낸 세이브 JSON을 설정의 세이브 불러오기로 가져오고, Google은 새로 로그인한다. `/Applications` 앱이나 기존 앱의 데이터 폴더를 지우지 않는다. 새 앱을 열 때는 이전 인스턴스를 종료하고 연다.
 

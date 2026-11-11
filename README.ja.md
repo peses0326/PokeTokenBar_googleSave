@@ -1,8 +1,8 @@
 <div align="center">
 
-<img src="assets/googlesave/logo.png" width="96" alt="PokemonTokenBar_gs ロゴ"> &nbsp; <img src="assets/googlesave/egg.png" width="96" alt="ドットのタマゴ">
+<img src="assets/googlesave/logo.png" width="96" alt="PokeTokenBar_gs ロゴ"> &nbsp; <img src="assets/googlesave/egg.png" width="96" alt="ドットのタマゴ">
 
-## PokemonTokenBar_gs
+## PokeTokenBar_gs
 
 **オリジナルの [PokeTokenBar](https://github.com/chattymin/PokeTokenBar) に必要な機能を追加したバージョンです。**
 このセクションより下はオリジナルの README です。
@@ -11,13 +11,13 @@
 
 **オリジナルとの違い**
 
-| | オリジナル PokeTokenBar | PokemonTokenBar_gs |
+| | オリジナル PokeTokenBar | PokeTokenBar_gs |
 |---|---|---|
 | セーブ同期 | セーブの手動書き出し/読み込み | 自分の Google ドライブの `PokeTokenBar_Save` に自動バックアップ（`drive.file` 権限のみ）、別の Mac で続きから |
-| アプリの区別 | `PokeTokenBar.app` | `PokemonTokenBar_gs.app`：バンドル ID とデータフォルダが別なのでオリジナルと併用可能 |
+| アプリの区別 | `PokeTokenBar.app` | `PokeTokenBar_gs.app`：バンドル ID とデータフォルダが別なのでオリジナルと併用可能 |
 | タマゴの価格 | 1B / 2.5B / 4B | 700M / 1.75B / 2.8B（30% オフ） |
 
-ビルド: `python3 scripts/build-google-preview.py --google-client-id 'YOUR_CLIENT_ID.apps.googleusercontent.com'` → `build/google-preview/PokemonTokenBar_gs.app`
+ビルド: `python3 scripts/build-google-preview.py --google-client-id 'YOUR_CLIENT_ID.apps.googleusercontent.com'` → `build/google-preview/PokeTokenBar_gs.app`
 [プライバシーポリシー](https://peses0326.github.io/PokeTokenBar_googleSave/privacy.html) · [利用規約](https://peses0326.github.io/PokeTokenBar_googleSave/terms.html)
 
 ---

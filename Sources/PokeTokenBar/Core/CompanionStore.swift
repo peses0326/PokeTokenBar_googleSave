@@ -2018,13 +2018,25 @@ final class CompanionStore {
     /// 백업을 못 남기면 **적용하지 않고** throw 한다 — 확인창이 "직전 상태가 남는다"고 약속하므로,
     /// 그 약속을 못 지키는 채로 덮어쓰면 사용자는 되돌릴 수단 없이 진행을 잃는다.
     func applySave(_ envelope: SaveEnvelope, todayTokensByProvider: [String: Int], todayDate: String,
-                   hasUsageData: Bool) throws {
+                   hasUsageData: Bool, cloudGameSettings: CloudGameSettings? = nil) throws {
         try backupStateBeforeImport()
-        state = SaveTransfer.rebasedForThisDevice(envelope.state,
-                                                  current: state,
-                                                  todayTokensByProvider: todayTokensByProvider,
-                                                  todayDate: todayDate,
-                                                  hasUsageData: hasUsageData)
+        let incoming = SaveTransfer.rebasedForThisDevice(envelope.state,
+                                                        current: state,
+                                                        todayTokensByProvider: todayTokensByProvider,
+                                                        todayDate: todayDate,
+                                                        hasUsageData: hasUsageData)
+        // A cloud acknowledgement must never precede a durable save. Manual imports
+        // share this boundary; failed writes leave the current in-memory game untouched.
+        try JSONEncoder().encode(incoming).write(to: fileURL, options: .atomic)
+        if let cloudGameSettings {
+            // Imported banked growth is already measured at the remote difficulty;
+            // installing that difficulty must not rescale those credits a second time.
+            growthDifficulty = cloudGameSettings.growthDifficulty
+            shopDifficulty = cloudGameSettings.shopDifficulty
+            defaults.set(growthDifficulty, forKey: "growthDifficulty")
+            defaults.set(shopDifficulty, forKey: "shopDifficulty")
+        }
+        state = incoming
         // 이전 개체 기준으로 진행 중이던 비동기·연출을 전부 무효화한다. activeGeneration 을 올리지
         // 않으면 먼저 떠 있던 라인 로드가 완료되며 새로 불러온 개체를 덮어쓴다.
         activeGeneration += 1

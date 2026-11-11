@@ -254,7 +254,9 @@ enum FreshEgg {
     /// 상점 구매가. 마음에 안 드는 부화를 리롤하는 프리미엄(쌓인 토큰의 활용처). 폐기 개체는 졸업이
     /// 아니라 그냥 사라지므로 도감·확률(collectedFinals)에 무영향 — "뽑은 적 없던 것처럼". 새 알은
     /// 처음부터 재인큐베이션(5M) 필요 + 성장(usedAtStage) 소멸이라 스팸/파밍이 자연 억제된다.
-    static let price = 1_000_000_000
+    /// 700M — 30% below the original 1B. Every tier derives from this, so guaranteed eggs get the
+    /// same discount (1.75B / 2.8B) and the tier ratios below still hold.
+    static let price = 700_000_000
 
     /// 상점에서 파는 알 — 보증 없음(기본) → 고급 이상 → 희귀 이상. `nil` = 등급 보증 없는 기존 알.
     /// **전설 전용 알은 팔지 않는다**(등급 하한을 capture_rate 로 표현할 수 없고, 최고 등급을 확정
@@ -262,12 +264,12 @@ enum FreshEgg {
     static let shopTiers: [Rarity?] = [nil, .uncommon, .rare]
 
     /// 등급 보증 알의 가격 — 배율은 새 상수를 짓지 않고 **기존 졸업 총량 표**를 그대로 쓴다
-    /// (common 750M : uncommon 1.875B : rare 3B = 1 : 2.5 : 4 → 1B / 2.5B / 4B).
+    /// (common 750M : uncommon 1.875B : rare 3B = 1 : 2.5 : 4 → 700M / 1.75B / 2.8B).
     ///
     /// 확률 배율(고급 7.16% : 희귀 6.98% ≈ 1 : 2.03)로 매기면 안 된다 — 그러면 같은 값으로 고급 알
     /// 2개를 사는 쪽이 희귀+ 기대 1.039마리·전설 0.104마리로 희귀 알 1개(1.000·0.100)를 모든 축에서
-    /// 앞질러 상위 티어가 완전 열등재가 된다. 졸업량 배율이라야 상위 티어가 희귀+ 1마리당 4.00B 로
-    /// 하위 반복 구매(4.81B)보다 싸다.
+    /// 앞질러 상위 티어가 완전 열등재가 된다. 졸업량 배율이라야 상위 티어가 희귀+ 1마리당 기본가×4 로
+    /// 하위 반복 구매(기본가×4.81)보다 싸다.
     static func price(guaranteeing tier: Rarity?) -> Int {
         guard let tier else { return price }
         let multiplier = Double(PokemonBalance.graduationTotal(tier)) / Double(PokemonBalance.graduationTotal(.common))

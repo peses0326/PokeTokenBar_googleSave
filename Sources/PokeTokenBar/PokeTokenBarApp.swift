@@ -23,6 +23,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
     private var store: UsageStore!
     private var companion: CompanionStore!
     private var updater: UpdateChecker!
+    private var cloudSync: GoogleCloudSync!
     private var floatingPet: FloatingPetController!
     private let navigation = PopoverNavigation()
 
@@ -106,7 +107,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         store = UsageStore()
         companion = CompanionStore()
         Task { await companion.preparePokemonProfiles() }
-        updater = UpdateChecker()
+        cloudSync = GoogleCloudSync()
+        // The Google sync build installs beside the original app. Its update banner would point at the
+        // original release (and `brew upgrade` would replace the original cask), so it does not check.
+        updater = AppEnv.isCloudPreview ? UpdateChecker(fetchLatest: { nil }) : UpdateChecker()
         store.localizationLanguage = companion.language   // 알림 현지화용 미러 시드
         store.onRefresh = { [weak self] in self?.onStoreRefreshed() }   // 한도 로드 후 companion·사탕 지급
         floatingPet = FloatingPetController(
@@ -286,6 +290,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
     private func onStoreRefreshed() {
         updateCompanion()
         companion.grantCandies(from: store.candyEligibleWindows, limitsReady: store.limitsReady)
+        cloudSync.syncIfDue(companion: companion, usage: store)
     }
 
     // MARK: 메뉴바 애니메이션
@@ -587,7 +592,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
 
     private func buildPopoverContent() {
         popover.contentViewController = NSHostingController(
-            rootView: PopoverView()
+            rootView: PopoverView(cloudSync: cloudSync)
                 .environment(store).environment(companion).environment(updater).environment(navigation))
     }
 

@@ -1,5 +1,31 @@
 <div align="center">
 
+<img src="assets/googlesave/logo.png" width="96" alt="PokeTokenBar_gs logo"> &nbsp; <img src="assets/googlesave/egg.png" width="96" alt="Pixel egg">
+
+## PokeTokenBar_gs
+
+**This is [PokeTokenBar](https://github.com/chattymin/PokeTokenBar) with the features I needed added.**
+Everything below this section is the original README.
+
+</div>
+
+**Differences from the original**
+
+| | Original PokeTokenBar | PokeTokenBar_gs |
+|---|---|---|
+| Save sync | Manual save export/import | Automatic backup to `PokeTokenBar_Save` in your own Google Drive (`drive.file` scope only), continue on another Mac |
+| App identity | `PokeTokenBar.app` | `PokeTokenBar_gs.app` with its own bundle id and data folder, installs alongside the original |
+| Egg prices | 1B / 2.5B / 4B | 700M / 1.75B / 2.8B (30% off) |
+
+Everything else (menu bar, popover, settings, login launch) is the original code, based on upstream v2.5.7. The `_gs` build skips the update check, because an update would install the original app instead.
+
+Build: `python3 scripts/build-google-preview.py --google-client-id 'YOUR_CLIENT_ID.apps.googleusercontent.com'` → `build/google-preview/PokeTokenBar_gs.app`
+[Privacy Policy](https://peses0326.github.io/PokeTokenBar_googleSave/privacy.html) · [Terms of Service](https://peses0326.github.io/PokeTokenBar_googleSave/terms.html)
+
+---
+
+<div align="center">
+
 <img src="assets/icon.png" width="128" alt="PokeTokenBar icon">
 
 # PokeTokenBar

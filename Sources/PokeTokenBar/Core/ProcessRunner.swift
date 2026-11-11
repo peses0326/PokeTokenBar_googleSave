@@ -19,6 +19,53 @@ enum RunnerError: Error, CustomStringConvertible {
 /// Process 실행 지점은 이 파일 하나로 제한한다.
 /// 현재 유일한 용도는 Codex app-server rate-limit read(JSON-RPC) — usage 집계는 로컬 로그 직파싱.
 enum ProcessRunner {
+    /// Bounded stdout/stderr capture for the bundled cloud helper; credentials never go in argv.
+    static func runCommand(binary: String, arguments: [String], timeout: TimeInterval = 90,
+                           maximumBytes: Int = 12 * 1024 * 1024) async throws -> Data {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent("ptb-command-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true,
+                                                attributes: [.posixPermissions: 0o700])
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let stdout = directory.appendingPathComponent("out")
+        let stderr = directory.appendingPathComponent("err")
+        FileManager.default.createFile(atPath: stdout.path, contents: nil, attributes: [.posixPermissions: 0o600])
+        FileManager.default.createFile(atPath: stderr.path, contents: nil, attributes: [.posixPermissions: 0o600])
+        let output = try FileHandle(forWritingTo: stdout)
+        let errors = try FileHandle(forWritingTo: stderr)
+        defer { try? output.close(); try? errors.close() }
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: binary)
+        process.arguments = arguments
+        process.environment = BinaryLocator.augmentedEnvironment(binaryPath: binary)
+        process.standardOutput = output
+        process.standardError = errors
+        process.standardInput = FileHandle.nullDevice
+        process.qualityOfService = .utility
+        try process.run()
+        defer { if process.isRunning { process.terminate() } }
+        let deadline = Date().addingTimeInterval(timeout)
+        while process.isRunning {
+            try Task.checkCancellation()
+            let size = (try? FileManager.default.attributesOfItem(atPath: stdout.path)[.size] as? NSNumber)?.intValue ?? 0
+            let errorSize = (try? FileManager.default.attributesOfItem(atPath: stderr.path)[.size] as? NSNumber)?.intValue ?? 0
+            guard size <= maximumBytes, errorSize <= maximumBytes else { throw CloudSyncError.message("Cloud helper output exceeds its limit") }
+            guard Date() < deadline else { throw RunnerError.timeout("cloud helper") }
+            try await Task.sleep(for: .milliseconds(150))
+        }
+        guard process.terminationStatus == 0 else {
+            let errorInput = try FileHandle(forReadingFrom: stderr)
+            defer { try? errorInput.close() }
+            let raw = try errorInput.read(upToCount: maximumBytes) ?? Data()
+            let message = (try? JSONSerialization.jsonObject(with: raw) as? [String: String])?["error"]
+            throw CloudSyncError.message(message ?? "Google sync helper failed. Check Python 3 and your connection.")
+        }
+        let input = try FileHandle(forReadingFrom: stdout)
+        defer { try? input.close() }
+        let data = try input.read(upToCount: maximumBytes + 1) ?? Data()
+        guard data.count <= maximumBytes else { throw CloudSyncError.message("Cloud helper output exceeds its limit") }
+        return data
+    }
+
     /// newline-delimited JSON-RPC 서버에 요청을 보내고 특정 id의 `result` JSON만 반환.
     /// Codex app-server가 stdout에 로그/notification을 섞어 내보낼 수 있어 line 단위로 필터링한다.
     static func runJSONRPC(

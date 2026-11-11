@@ -3,6 +3,9 @@ import Foundation
 /// Application Support state directory for PokeTokenBar files.
 /// `PTB_STATE_DIR` overrides the default for development/QA isolation.
 enum AppStatePaths {
+    /// State folder of the Google-sync build (`PTBCloudPreview`), kept apart from the original app.
+    static let googleSyncFolderName = "PokeTokenBar_gs"
+
     static func directory() -> URL {
         let override = (ProcessInfo.processInfo.environment["PTB_STATE_DIR"] ?? "")
             .trimmingCharacters(in: .whitespacesAndNewlines)
@@ -11,7 +14,7 @@ enum AppStatePaths {
             dir = URL(fileURLWithPath: override, isDirectory: true)
         } else {
             dir = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-                .appendingPathComponent("PokeTokenBar")
+                .appendingPathComponent(AppEnv.isCloudPreview ? googleSyncFolderName : "PokeTokenBar")
         }
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         return dir

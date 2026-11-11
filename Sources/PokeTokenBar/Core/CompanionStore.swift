@@ -219,8 +219,8 @@ final class CompanionStore {
                 isShiny: state.ownsShinySpecies(selected, form: state.representativeForm),
                 form: PokemonForm.resolved(speciesID: selected, form: state.representativeForm))
         } else {
-            next = RepresentativeSubject(speciesID: currentSpeciesID, isShiny: currentIsShiny,
-                                         form: currentForm)
+            next = RepresentativeSubject(speciesID: displaySpeciesID, isShiny: currentIsShiny,
+                                         form: displayForm)
         }
         if representativeSubject != next { representativeSubject = next }
     }
@@ -262,6 +262,38 @@ final class CompanionStore {
                                speciesID: a.currentID, form: currentForm)
     }
     var currentSpeciesID: Int? { state.active?.currentID }
+    /// The appearance drawn for the raised Pokémon — a chosen earlier stage, or the current one.
+    var displaySpeciesID: Int? { state.active?.displayID }
+    var displayForm: PokemonForm? {
+        PokemonForm.resolved(speciesID: displaySpeciesID ?? 0, form: state.active?.form)
+    }
+    /// Stages of the raised Pokémon's planned line, each with whether it can be picked as its look.
+    /// Unreached stages stay locked (they are not in the Pokédex yet).
+    var appearanceChoices: [(id: Int, unlocked: Bool)] {
+        guard let a = state.active else { return [] }
+        let unlocked = Set(a.unlockedAppearanceIDs)
+        let line = a.unlockedAppearanceIDs + a.plannedPathIDs.filter { !unlocked.contains($0) }
+        return line.map { ($0, unlocked.contains($0)) }
+    }
+    /// Localized name of a stage in the raised Pokémon's line (appearance menu).
+    func lineSpeciesName(_ id: Int) -> String {
+        currentLine.map { $0.localizedName(id, state.language) } ?? "#\(id)"
+    }
+
+    /// The pinned appearance, or nil while it follows the current stage.
+    var appearanceSelection: Int? { state.active?.appearanceID }
+
+    /// Pin the raised Pokémon's look to one of its reached stages — kept even after it evolves.
+    /// nil follows the current stage again. Refuses unreached stages.
+    @discardableResult
+    func setAppearance(_ id: Int?) -> Bool {
+        guard var a = state.active else { return false }
+        if let id, !a.unlockedAppearanceIDs.contains(id) { return false }
+        a.appearanceID = id
+        state.active = a
+        save()
+        return true
+    }
     var currentForm: PokemonForm? {
         PokemonForm.resolved(speciesID: currentSpeciesID ?? 0, form: state.active?.form)
     }

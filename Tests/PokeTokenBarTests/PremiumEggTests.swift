@@ -184,7 +184,7 @@ final class PremiumEggTests: XCTestCase {
         XCTAssertEqual(s.state.eggUsage, 0, "새 알은 처음부터 인큐베이션")
         // 등급 알도 새 알과 같은 놓아줌 경로를 쓴다 — 종은 남기되 졸업으로 세지는 않는다.
         XCTAssertEqual(s.state.dex.count, 1, "놓아준 개체가 기록으로 남는다")
-        XCTAssertTrue(s.state.dex.first?.isReleased ?? false, "졸업이 아니라 놓아줌")
+        XCTAssertTrue(s.state.dex.first?.isStored ?? false, "졸업이 아니라 보관")
         XCTAssertTrue(s.state.collectedFinals.isEmpty, "최종체 완성으로 세지 않는다")
     }
 

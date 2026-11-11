@@ -37,7 +37,7 @@ final class KoreanParticleTests: XCTestCase {
         XCTAssertEqual(l.notifShinyHatchBody("뚜벅쵸", odds: 48), "이로치 뚜벅쵸가 태어났어요! (1/48)")
         XCTAssertEqual(l.notifEvolveBody(from: "솔록", to: "듀란"), "솔록이 듀란으로 진화했어요!")
         XCTAssertEqual(l.statusEvolved("란쿨루스"), "란쿨루스로 진화했어요!")
-        XCTAssertEqual(l.eggConfirm("레트라", l.eggName(.rare)), "레트라를 놓아주고 희귀 알로 바꿀까요?")
+        XCTAssertEqual(l.eggConfirm("레트라", l.eggName(.rare)), "레트라를 보관하고 희귀 알로 바꿀까요?")
     }
 
     /// 조사 선택은 한국어 문구에만 적용된다.

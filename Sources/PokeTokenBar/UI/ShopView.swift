@@ -163,7 +163,7 @@ private struct EggCard: View {
     let nav: PopoverNavigation
     let tier: Rarity?
     @State private var stage: Stage = .idle
-    private enum Stage { case idle, confirm, preciousConfirm }
+    private enum Stage { case idle, confirm }
 
     private var price: Int { store.price(of: .egg(tier)) }
 
@@ -222,12 +222,19 @@ private struct EggCard: View {
                     } else if store.canBuyEgg(tier) {
                         Button(l.buy) { stage = .confirm }
                             .buttonStyle(.bordered).controlSize(.small)
+                    } else if store.hasPausedEgg {
+                        Button(l.buy) {}
+                            .buttonStyle(.bordered).controlSize(.small).disabled(true)
                     } else {
                         Text(l.notEnoughTokens).font(.caption2).foregroundStyle(.tertiary)
                     }
                 }
                 if !store.hasActive {
                     Text(l.eggShopLockedHint)
+                        .font(.caption2).foregroundStyle(.tertiary)
+                        .fixedSize(horizontal: false, vertical: true)
+                } else if store.hasPausedEgg {
+                    Text(l.eggPausedHint)
                         .font(.caption2).foregroundStyle(.tertiary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
@@ -237,21 +244,9 @@ private struct EggCard: View {
                 Text(l.eggConfirm(store.displayName, l.eggName(tier)))
                     .font(.caption2).foregroundStyle(.secondary).lineLimit(2)
                 Spacer()
-                // 이로치나 전설 등 고가치 포켓몬이면 한 번 더 경고, 아니면 즉시 실행.
-                Button(l.buy) {
-                    if store.isHighValueCompanion { stage = .preciousConfirm } else { commit() }
-                }
-                .buttonStyle(.borderedProminent).controlSize(.small)
-                Button(l.cancel) { stage = .idle }
-                    .buttonStyle(.borderless).controlSize(.small)
-            }
-        case .preciousConfirm:
-            HStack(spacing: 8) {
-                Text(store.rarity == .legendary ? l.freshEggLegendaryWarning : l.freshEggShinyWarning)
-                    .font(.caption2.weight(.semibold)).foregroundStyle(.orange).lineLimit(2)
-                Spacer()
-                Button(store.currentIsShiny && store.rarity != .legendary ? l.freshEggDiscardShiny : l.freshEggDiscardValuable) { commit() }
-                    .buttonStyle(.borderedProminent).controlSize(.small).tint(.orange)
+                // The current Pokémon is stored, not lost, so no extra warning for shiny/legendary ones.
+                Button(l.buy) { commit() }
+                    .buttonStyle(.borderedProminent).controlSize(.small)
                 Button(l.cancel) { stage = .idle }
                     .buttonStyle(.borderless).controlSize(.small)
             }

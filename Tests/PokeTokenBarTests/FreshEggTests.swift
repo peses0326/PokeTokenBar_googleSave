@@ -49,7 +49,9 @@ final class FreshEggTests: XCTestCase {
                        "놓아준 개체가 영구 기록으로 추가된다")
         let released = try? XCTUnwrap(s.state.dex.last)
         XCTAssertEqual(released?.baseID, 10)
-        XCTAssertTrue(released?.isReleased ?? false, "졸업분과 구분되는 놓아줌 기록")
+        XCTAssertTrue(released?.isStored ?? false, "구매한 알은 현재 포켓몬을 보관한다(놓아주지 않는다)")
+        XCTAssertFalse(released?.isReleased ?? true, "보관 중인 개체는 놓아줌 기록이 아니다")
+        XCTAssertEqual(released?.stored?.usedAtStage, 200_000_000, "보관은 성장치를 그대로 지닌다")
         XCTAssertEqual(released?.chainOrder, [10], "도달한 형태만 — stageIndex 0 이라 1형태")
         XCTAssertEqual(s.dexEntries.count, persistedDexBefore.count + 1,
                        "합성 엔트리는 사라지고 영구 기록이 그 자리를 대신한다")

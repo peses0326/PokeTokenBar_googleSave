@@ -236,3 +236,42 @@ final class GoogleCloudSyncTests: XCTestCase {
         }
     }
 }
+
+/// The loopback listener lives inside the Python helper. If either side gives up before the user
+/// finishes Google's consent screen, the browser lands on "127.0.0.1 refused to connect".
+final class GoogleSignInWindowTests: XCTestCase {
+    func testSwiftMirrorsHelperWindow() throws {
+        let script = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
+            .deletingLastPathComponent().appendingPathComponent("Sources/PokeTokenBar/Resources/CloudSync/google_sync.py")
+        let source = try String(contentsOf: script, encoding: .utf8)
+        let line = try XCTUnwrap(source.split(separator: "\n").first { $0.hasPrefix("SIGN_IN_WINDOW_SECONDS = ") })
+        let seconds = try XCTUnwrap(TimeInterval(line.split(separator: "=")[1].trimmingCharacters(in: .whitespaces)))
+        XCTAssertEqual(seconds, GoogleCloudSync.signInWindow)
+        XCTAssertGreaterThanOrEqual(seconds, 600, "4 minutes was not enough to finish the consent screen")
+    }
+
+    @MainActor
+    func testConnectOutlivesTheHelperWindow() async throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent("gs-window-\(UUID())")
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let suite = "gs-window-\(UUID())"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let observed = LockedTimeout()
+        let sync = GoogleCloudSync(directory: directory, defaults: defaults,
+            oauthClient: GoogleOAuthClient(clientID: "test.apps.googleusercontent.com"),
+            runner: { arguments, timeout in
+                if arguments.contains("authorize") { observed.set(timeout) }
+                return Data("{\"status\":\"connected\",\"account\":{\"sub\":\"s\",\"email\":\"e@example.invalid\"}}".utf8)
+            })
+        await sync.connect()
+        XCTAssertGreaterThan(try XCTUnwrap(observed.value), GoogleCloudSync.signInWindow)
+    }
+}
+
+private final class LockedTimeout: @unchecked Sendable {
+    private let lock = NSLock()
+    private var stored: TimeInterval?
+    func set(_ value: TimeInterval) { lock.lock(); stored = value; lock.unlock() }
+    var value: TimeInterval? { lock.lock(); defer { lock.unlock() }; return stored }
+}

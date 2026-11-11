@@ -78,6 +78,9 @@ final class GoogleCloudSync {
     private(set) var lastSync: Date?
     private(set) var driveFolderURL: URL?
     var loginConfigured: Bool { oauthClient?.isValid == true }
+    /// Mirrors `SIGN_IN_WINDOW_SECONDS` in google_sync.py. The helper's process timeout must exceed it,
+    /// or the app kills the loopback listener while the user is still on Google's consent screen.
+    nonisolated static let signInWindow: TimeInterval = 600
     private let directory: URL
     private let defaults: UserDefaults
     private let runner: Runner
@@ -140,7 +143,8 @@ final class GoogleCloudSync {
                                                                                "client_secret": oauthClient.clientSecret]])
             try data.write(to: clientFile, options: .atomic)
             try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: clientFile.path)
-            let response = try await run(["authorize", "--client", clientFile.path], timeout: 300)
+            let response = try await run(["authorize", "--client", clientFile.path],
+                                         timeout: Self.signInWindow + 60)
             let reply = try JSONDecoder().decode(Reply.self, from: response)
             guard let account = reply.account, reply.status == "connected" else {
                 throw CloudSyncError.message("Google login did not complete")

@@ -34,6 +34,11 @@ TOKEN = "https://oauth2.googleapis.com/token"
 MAX_SAVE = 8 * 1024 * 1024
 MAX_SUMMARY = 256 * 1024
 MAX_FILES = 2000
+# How long the loopback listener waits for the browser. The consent screen, the unverified-app
+# warning and adding a test user can easily take longer than 4 minutes; when the listener has
+# already exited, the browser only shows "127.0.0.1 refused to connect". GoogleCloudSync.swift
+# waits a little longer than this (signInWindow) so it never kills the helper first.
+SIGN_IN_WINDOW_SECONDS = 600
 
 
 class SyncError(Exception):
@@ -310,11 +315,11 @@ def authorize(directory, client_path, port=0, no_browser=False):
             print("Open this URL in your browser (forward the loopback port for a remote host):\n" + url, file=sys.stderr)
         elif not webbrowser.open(url):
             raise SyncError("Could not open the system browser")
-        deadline = time.monotonic() + 240
+        deadline = time.monotonic() + SIGN_IN_WINDOW_SECONDS
         while not outcome and time.monotonic() < deadline:
             server.handle_request()
         if "code" not in outcome:
-            raise SyncError(outcome.get("error", "Google sign-in timed out"))
+            raise SyncError(outcome.get("error", "Google sign-in timed out after 10 minutes. Start sign-in again and finish it in the browser."))
     fields = {"client_id": config["client_id"],
               "code": outcome["code"], "code_verifier": verifier, "redirect_uri": redirect,
               "grant_type": "authorization_code"}

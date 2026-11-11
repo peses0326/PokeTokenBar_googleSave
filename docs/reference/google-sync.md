@@ -14,7 +14,7 @@ Google 로그인 → 본인 계정 선택 → Drive 권한 동의
 ## 사용자가 할 일
 
 1. 기존 앱의 세이브 내보내기 파일을 보관한다. 기존 앱은 삭제하지 않는다.
-2. Google Preview 앱에서 진행이 정상적으로 불러와졌는지 확인한다. 이미 불러온 진행은 같은 Preview 데이터 폴더에 유지된다.
+2. PokeTokenBar_GoogleSave 앱에서 진행이 정상적으로 불러와졌는지 확인한다. 이미 불러온 진행은 같은 데이터 폴더에 유지된다.
 3. 설정 → Google 동기화 → **Google 로그인**을 누른다.
 4. 브라우저에서 본인 Google 계정을 선택하고, 앱이 사용하는 Drive 파일 저장 권한에 동의한다.
 5. 앱에 계정 이메일·동기화 시각이 나타나는지 확인한다. **내 Drive의 세이브 폴더 열기**로 실제 파일을 볼 수 있다.
@@ -70,9 +70,9 @@ OAuth 앱이 Testing 상태이면 Drive 권한을 가진 refresh token이 7일 �
 기존 PokeTokenBar 2.5.7 앱은 교체하지 않는다. 테스트 앱은 별도 앱 식별자와 데이터 폴더를 사용한다.
 
 - 기존: `~/Library/Application Support/PokeTokenBar/`
-- Preview: `~/Library/Application Support/PokeTokenBar-GooglePreview/`
+- PokeTokenBar_GoogleSave: `~/Library/Application Support/PokeTokenBar_GoogleSave/` (번들 ID `io.github.peses0326.poketokenbar-googlesave`)
 
-이미 Preview에 불러온 세이브는 Preview를 업데이트해도 같은 위치에서 읽는다. `/Applications` 앱이나 기존 앱의 데이터 폴더를 지우지 않는다. 새 테스트 앱을 열 때는 이전 Preview 인스턴스를 종료하고 연다.
+이전 이름(PokeTokenBar Google Preview, `PokeTokenBar-GooglePreview/`, `io.github.chattymin.poketokenbar.google-preview`)으로 쓰던 데이터는 새 앱 첫 실행 때 한 번 **복사**된다(`AppStatePaths.migrateLegacyPreviewIfNeeded`). 세이브·Google 자격 증명·앱 설정(UserDefaults)이 넘어오며, 옛 폴더는 백업으로 남는다. 새 폴더의 `.migrated-from-google-preview` 표식이 있으면 다시 복사하지 않는다. `/Applications` 앱이나 기존 앱의 데이터 폴더를 지우지 않는다. 새 앱을 열 때는 이전 인스턴스를 종료하고 연다.
 
 ## 원격 서버의 LLM 사용량도 반영하려면
 

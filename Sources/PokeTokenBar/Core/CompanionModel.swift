@@ -585,13 +585,19 @@ struct DexEntry: Codable, Sendable, Identifiable {
     var releasedAt: Date?
     /// 졸업이 아니라 놓아준 기록인가 — 포획 로그가 뱃지를 가르는 판정.
     var isReleased: Bool { releasedAt != nil }
+    /// Full individual kept in storage (진행·진화 단계·성장치 그대로). Non-nil = "보관 중": the player
+    /// can raise it again at any time. Releasing it from storage clears this and stamps `releasedAt`,
+    /// so the species stays in the Pokédex as an ordinary released record.
+    var stored: MonState?
+    var isStored: Bool { stored != nil }
 
     init(id: String = UUID().uuidString,
          baseID: Int, finalID: Int, chainOrder: [Int], rarity: Rarity,
          caughtAt: Date?, isShiny: Bool = false, nature: PokemonNature? = nil,
          profile: PokemonProfile? = nil, names: [Int: [String: String]]? = nil, releasedAt: Date? = nil,
-         form: PokemonForm? = nil, prayers: PrayerRecord? = nil) {
+         form: PokemonForm? = nil, prayers: PrayerRecord? = nil, stored: MonState? = nil) {
         self.id = id
+        self.stored = stored
         self.baseID = baseID
         self.finalID = finalID
         self.chainOrder = chainOrder
@@ -628,6 +634,9 @@ struct DexEntry: Codable, Sendable, Identifiable {
         namesVersion = try? c.decodeIfPresent(Int.self, forKey: .namesVersion)
         // 이 필드 이전에 저장된 항목은 전부 졸업분이다 — nil 이 곧 "졸업"이라 마이그레이션이 필요 없다.
         releasedAt = try c.decodeIfPresent(Date.self, forKey: .releasedAt)
+        // A damaged stored individual degrades to a plain released record instead of dropping the entry.
+        stored = (try? c.decodeIfPresent(MonState.self, forKey: .stored)) ?? nil
+        if stored == nil, c.contains(.stored), releasedAt == nil { releasedAt = caughtAt ?? Date() }
         form = PokemonForm.resolved(baseID: baseID, form: PokemonForm.decoded(from: decoder, keys: "form", "unownForm"))
     }
 }
@@ -648,6 +657,17 @@ private extension KeyedDecodingContainer {
     func lenientOptional<T: Decodable>(_ type: T.Type, forKey key: Key) -> T? {
         try? decode(type, forKey: key)
     }
+}
+
+/// An egg set aside while a stored Pokémon is raised (보관 포켓몬을 알 상태에서 불러왔을 때).
+/// It keeps incubation progress, the paid tier guarantee and the pre-rolled species, and resumes
+/// when the raised Pokémon is put back into storage. Invariant: only exists while `active != nil`.
+struct PausedEgg: Codable, Sendable, Equatable {
+    var usage: Int
+    var tier: Rarity?
+    var pendingHatchID: Int?
+    var pendingForm: PokemonForm?
+    var prayers: PrayerRecord?
 }
 
 /// 영속 상태(Application Support JSON). 포켓몬 전환 — 이전 커스텀 캐릭터 상태는 폐기(새로 시작).
@@ -684,6 +704,8 @@ struct CompanionState: Codable, Sendable {
     var lastDate = ""
     // 현재 포켓몬(없으면 알)
     var active: MonState?
+    /// The egg waiting for the raised Pokémon to go back into storage (see `PausedEgg`).
+    var pausedEgg: PausedEgg?
     // 메뉴바와 플로팅 펫에 고정한 대표 종. nil = 현재 키우는 포켓몬(또는 알)을 그대로 따라간다.
     // 종 단위 선택이라 성격 같은 개체 정보는 들고 있지 않는다. 선택 가능한 범위는 도감과 동일하게
     // 졸업분 + 현재 개체의 도달 단계이며, 그 범위에서 빠지면 reconcileRepresentativeSelection 이 nil 로 복구한다.
@@ -737,6 +759,7 @@ struct CompanionState: Codable, Sendable {
         claimedCumulativeTokens = c.lenient([String: Int].self, forKey: .claimedCumulativeTokens, default: [:])
         // active 손상(빈 pathIDs 등) → 알로 폴백하되 도감·인벤토리는 보존.
         active             = c.lenientOptional(MonState.self, forKey: .active)
+        pausedEgg          = c.lenientOptional(PausedEgg.self, forKey: .pausedEgg)
         representativeSpeciesID = c.lenientOptional(Int.self, forKey: .representativeSpeciesID)
         representativeForm = PokemonForm.resolved(speciesID: representativeSpeciesID ?? 0,
             form: PokemonForm.decoded(from: decoder, keys: "representativeForm", "representativeUnownForm"))

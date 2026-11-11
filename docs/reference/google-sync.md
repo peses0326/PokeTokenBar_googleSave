@@ -23,14 +23,14 @@ Google 로그인 → 본인 계정 선택 → Drive 권한 동의
 
 ## 개발 설정과 현재 확인 상태
 
-제공된 Desktop OAuth 클라이언트 ID를 Preview 0.2.0 빌드에 등록했다. 실제 앱에서 로그인 버튼을 눌러 Google 공식 계정 선택 화면에 앱 이름 **PokeTokenBar_save**가 표시되는 것까지 확인했다. 계정 선택·권한 동의·폴더 생성·첫 업로드·토큰 갱신은 아직 완료 확인 전이다.
+Desktop OAuth 클라이언트 ID는 빌드할 때 Info.plist에 넣는다. Google 동의 화면의 앱 이름은 `PokeTokenBar_gs`다.
 
 일반 사용자는 JSON 파일을 고르지 않고 Google 로그인 버튼을 사용한다. Google Cloud 프로젝트에서 Drive API가 활성화되어 있어야 하며, Testing 상태이면 로그인할 계정을 테스트 사용자에 추가해야 한다. 해당 설정이 이미 되어 있으면 그대로 진행한다.
 
 개발 빌드 예:
 
 ```bash
-python3 scripts/build-google-preview.py --google-client-id 'YOUR_CLIENT_ID.apps.googleusercontent.com'
+python3 scripts/build-google-save-version.py --google-client-id 'YOUR_CLIENT_ID.apps.googleusercontent.com'
 ```
 
 Google이 해당 클라이언트에 대해 추가 Desktop 설정을 요구할 경우 개발자가 빌드 시 `--oauth-client-config /PRIVATE/PATH/desktop-client.json`으로 포함할 수 있다. 이 옵션은 개발자용이며 일반 사용자 화면에는 파일 선택이 없다. 클라이언트 ID는 공개 앱 식별자이고, 실제 사용자 로그인 토큰은 앱에 내장하지 않는다.
@@ -64,12 +64,14 @@ OAuth 앱이 Testing 상태이면 Drive 권한을 가진 refresh token이 7일 �
 
 ## 기존 앱과 데이터
 
-기존 PokeTokenBar 앱은 교체하지 않는다. 이 빌드는 원본 코드에 Google 동기화와 알 30% 할인만 더한 것이고, 메뉴바·팝오버·로그인 실행 등 나머지 동작은 원본과 같다. 원본 앱과 따로 설치되므로 업데이트 확인만 끈다(원본 릴리스로 덮어쓰지 않게). 테스트 앱은 별도 앱 식별자와 데이터 폴더를 사용한다.
+기존 PokeTokenBar 앱은 교체하지 않는다. 이 빌드는 원본 코드에 Google 동기화와 알 30% 할인만 더한 것이고, 메뉴바·팝오버·로그인 실행 등 나머지 동작은 원본과 같다. 원본 앱과 따로 설치되므로 업데이트 확인만 끈다(원본 릴리스로 덮어쓰지 않게). 이 앱은 별도 앱 식별자와 데이터 폴더를 사용한다.
 
 - 기존: `~/Library/Application Support/PokeTokenBar/`
 - PokeTokenBar_gs: `~/Library/Application Support/PokeTokenBar_gs/` (번들 ID `io.github.peses0326.poketokenbar-gs`). Google 동의 화면의 앱 이름도 `PokeTokenBar_gs` 이다.
 
-이 앱은 이전 프리뷰(PokeTokenBar Google Preview, `PokeTokenBar-GooglePreview/`)의 데이터를 **자동으로 가져오지 않는다**. 번들 ID·데이터 폴더·설정·권한을 원본 앱이나 이전 프리뷰와 섞지 않기 위해서다. 진행은 이전 앱에서 내보낸 세이브 JSON을 설정의 세이브 불러오기로 가져오고, Google은 새로 로그인한다. `/Applications` 앱이나 기존 앱의 데이터 폴더를 지우지 않는다. 새 앱을 열 때는 이전 인스턴스를 종료하고 연다.
+원본 앱의 데이터는 **자동으로 가져오지 않는다**. 진행은 원본 앱에서 내보낸 세이브 JSON을 설정의 세이브 불러오기로 가져온다. 원본 앱과 그 데이터 폴더는 지우지 않는다.
+
+빌드 결과는 `build/google-save-version/PokeTokenBar_gs.app`이다. `/Applications`로 옮겨 쓰면 된다.
 
 ## 보안 확인
 

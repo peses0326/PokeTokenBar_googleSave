@@ -19,7 +19,7 @@ Everything below this section is the original README.
 
 Everything else (menu bar, popover, settings, login launch) is the original code, based on upstream v2.5.7. The `_gs` build skips the update check, because an update would install the original app instead.
 
-Build: `python3 scripts/build-google-preview.py --google-client-id 'YOUR_CLIENT_ID.apps.googleusercontent.com'` → `build/google-preview/PokeTokenBar_gs.app`
+Build: `python3 scripts/build-google-save-version.py --google-client-id 'YOUR_CLIENT_ID.apps.googleusercontent.com'` → `build/google-save-version/PokeTokenBar_gs.app`
 [Privacy Policy](https://peses0326.github.io/PokeTokenBar_googleSave/privacy.html) · [Terms of Service](https://peses0326.github.io/PokeTokenBar_googleSave/terms.html)
 
 ---

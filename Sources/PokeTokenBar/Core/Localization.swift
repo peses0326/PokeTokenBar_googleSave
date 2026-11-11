@@ -1888,24 +1888,24 @@ struct L {
     }
     func eggDescription(_ tier: Rarity?) -> String {
         guard let tier, tier != .common else {
-            return t("지금 포켓몬은 도감에 보관하고 새 알로 시작해요.",
-                     "Your current Pokémon goes into storage and you start fresh with a new egg.",
-                     "いまのポケモンは図鑑に預けて、新しいタマゴから始めます。",
-                     "Tu Pokémon actual se guarda y empiezas con un huevo nuevo.",
-                     "Ton Pokémon actuel est stocké et tu repars avec un nouvel œuf.",
-                     "Seu Pokémon atual é guardado e você começa com um ovo novo.",
-                     "Dein aktuelles Pokémon wird eingelagert und du startest mit einem neuen Ei.",
-                     "Текущий покемон уходит на хранение, а вы начинаете с нового яйца.")
+            return t("지금 포켓몬을 놓아주고 새 알로 다시 시작해요.",
+                     "Send off your current Pokémon and start fresh with a new egg.",
+                     "いまのポケモンを手放して新しいタマゴからやり直します。",
+                     "Suelta a tu Pokémon actual y empieza de nuevo con un huevo nuevo.",
+                     "Laisse partir ton Pokémon actuel et repars de zéro avec un nouvel œuf.",
+                     "Solte seu Pokémon atual e recomece com um ovo novo.",
+                     "Verabschiede dein aktuelles Pokémon und starte mit einem neuen Ei.",
+                     "Отпустите текущего покемона и начните заново с новым яйцом.")
         }
         let r = rarityLabel(tier)
-        return t("지금 포켓몬은 도감에 보관하고 \(r) 이상이 확정으로 나오는 알을 받아요.",
-                 "Your current Pokémon goes into storage for an egg guaranteed to hatch \(r) or better.",
-                 "いまのポケモンは図鑑に預けて、\(r) 以上が確定で孵るタマゴをもらいます。",
-                 "Tu Pokémon actual se guarda y recibes un huevo garantizado de \(r) o superior.",
-                 "Ton Pokémon actuel est stocké contre un œuf garanti \(r) ou mieux.",
-                 "Seu Pokémon atual é guardado e você ganha um ovo que garante \(r) ou melhor.",
-                 "Dein aktuelles Pokémon wird eingelagert und du erhältst ein Ei mit garantiert \(r) oder höher.",
-                 "Текущий покемон уходит на хранение, а вы получаете яйцо с гарантией: \(r) или выше.")
+        return t("지금 포켓몬을 놓아주고 \(r) 이상이 확정으로 나오는 알을 받아요.",
+                 "Send off your current Pokémon for an egg guaranteed to hatch \(r) or better.",
+                 "いまのポケモンを手放して \(r) 以上が確定で孵るタマゴをもらいます。",
+                 "Suelta a tu Pokémon actual y consigue un huevo garantizado de \(r) o superior.",
+                 "Laisse partir ton Pokémon actuel pour un œuf garanti \(r) ou mieux.",
+                 "Solte seu Pokémon atual e ganhe um ovo que garante \(r) ou melhor.",
+                 "Verabschiede dein aktuelles Pokémon und erhalte ein Ei, aus dem garantiert ein Pokémon der Seltenheitsstufe \(r) oder höher schlüpft.",
+                 "Отпустите текущего покемона и получите яйцо с гарантией: \(r) или выше.")
     }
     /// 알 상태의 상점 알 카드 비활성 사유 — 항목은 보이되 구매 버튼 아래에 한 줄로 붙는다(EggCard).
     var eggShopLockedHint: String {
@@ -1928,67 +1928,29 @@ struct L {
     /// → 놓아준 종의 부화 가중치는 100% 를 유지한다. 재인큐베이션은 말하지 않는다(`eggDescription`
     /// 의 "새 알로 다시 시작해요" 와 중복).
     var eggReleaseNote: String {
-        t("보관한 포켓몬은 진행 그대로 남아 도감에서 언제든 다시 키울 수 있어요. 보관 중인 종은 알에서 이로치로만 나와요.",
-          "Stored Pokémon keep their progress — raise them again from the Pokédex any time. A stored species only hatches again as a shiny.",
-          "預けたポケモンは進み具合そのままで、図鑑からいつでもまた育てられます。預かり中の種類はタマゴから色違いでしか出ません。",
-          "Los Pokémon guardados conservan su progreso: vuelve a criarlos desde la Pokédex cuando quieras. Una especie guardada solo vuelve a salir variocolor.",
-          "Les Pokémon stockés gardent leur progression : reprends-les depuis le Pokédex quand tu veux. Une espèce stockée ne réapparaît qu’en chromatique.",
-          "Pokémon guardados mantêm o progresso — volte a criá-los pela Pokédex quando quiser. Uma espécie guardada só volta a chocar shiny.",
-          "Eingelagerte Pokémon behalten ihren Fortschritt – zieh sie jederzeit über den Pokédex weiter auf. Eine eingelagerte Art schlüpft nur noch schillernd.",
-          "Покемоны на хранении сохраняют прогресс — вернитесь к ним в Покедексе в любой момент. Вид на хранении вылупится снова только шайни.")
+        t("놓아준 포켓몬도 도감에 남고, 같은 확률로 다시 만날 수 있어요. 키운 진행도만 사라져요.",
+          "A released Pokémon stays in your Pokédex and can hatch again at the same odds — only the growth progress is lost.",
+          "手放したポケモンも図鑑に残り、同じ確率でまた出会えます。失われるのは育てた進み具合だけです。",
+          "El Pokémon liberado permanece en la Pokédex y puede volver a salir con la misma probabilidad; solo se pierde el progreso de crianza.",
+          "Un Pokémon relâché reste dans le Pokédex et peut réapparaître avec la même probabilité ; seule la progression est perdue.",
+          "O Pokémon solto continua na Pokédex e pode voltar a aparecer com a mesma chance; só o progresso de criação se perde.",
+          "Ein freigelassenes Pokémon bleibt im Pokédex und kann mit gleicher Wahrscheinlichkeit wieder schlüpfen; nur der Aufzuchtfortschritt geht verloren.",
+          "Отпущенный покемон остаётся в Покедексе и может вылупиться снова с тем же шансом — теряется только прогресс роста.")
     }
-    /// Shop egg card: a paused egg blocks buying another one (it would be overwritten).
-    var eggPausedHint: String {
-        t("기다리는 알이 있어요. 지금 포켓몬을 도감에서 보관하면 그 알이 이어서 진행돼요.",
-          "An egg is waiting. Store your current Pokémon from the Pokédex to resume it.",
-          "待っているタマゴがあります。いまのポケモンを図鑑で預けると、そのタマゴが再開します。",
-          "Hay un huevo esperando. Guarda tu Pokémon actual desde la Pokédex para retomarlo.",
-          "Un œuf attend. Stocke ton Pokémon actuel depuis le Pokédex pour le reprendre.",
-          "Há um ovo esperando. Guarde seu Pokémon atual pela Pokédex para retomá-lo.",
-          "Ein Ei wartet. Lagere dein aktuelles Pokémon über den Pokédex ein, um es fortzusetzen.",
-          "Яйцо ждёт. Отправьте текущего покемона на хранение в Покедексе, чтобы продолжить.")
-    }
-    var dexStored: String { t("보관 중", "Stored", "預かり中", "Guardado", "Stocké", "Guardado", "Eingelagert", "На хранении") }
-    var storageStore: String { t("보관하기", "Store", "預ける", "Guardar", "Stocker", "Guardar", "Einlagern", "На хранение") }
-    var storageStoreNeedsEgg: String {
-        t("보관하기 (알을 사면 자동 보관)", "Store (happens when you buy an egg)", "預ける（タマゴを買うと自動）",
-          "Guardar (al comprar un huevo)", "Stocker (à l’achat d’un œuf)", "Guardar (ao comprar um ovo)",
-          "Einlagern (beim Eikauf)", "На хранение (при покупке яйца)")
-    }
-    func storageRaise(_ name: String) -> String {
-        t("\(name) 키우기", "Raise \(name)", "\(name) を育てる", "Criar a \(name)", "Élever \(name)", "Criar \(name)", "\(name) aufziehen", "Растить: \(name)")
-    }
-    func storageRelease(_ name: String) -> String {
-        t("\(name) 놓아주기…", "Release \(name)…", "\(name) を逃がす…", "Liberar a \(name)…", "Relâcher \(name)…", "Soltar \(name)…", "\(name) freilassen…", "Отпустить: \(name)…")
-    }
-    func storageReleaseTitle(_ name: String) -> String {
-        t("\(KoreanParticle.object.attach(to: name)) 놓아줄까요?", "Release \(name)?", "\(name) を逃がしますか？", "¿Liberar a \(name)?", "Relâcher \(name) ?", "Soltar \(name)?", "\(name) freilassen?", "Отпустить \(name)?")
-    }
-    var storageReleaseBody: String {
-        t("도감 기록은 남지만 키운 진행은 사라지고 다시 불러올 수 없어요. 놓아준 종은 알에서 다시 나올 수 있어요.",
-          "The Pokédex record stays, but its progress is gone and it can’t be raised again. The species can hatch from eggs again.",
-          "図鑑の記録は残りますが、育てた進み具合は消え、呼び戻せません。この種類はまたタマゴから出られます。",
-          "El registro de la Pokédex se conserva, pero su progreso se pierde y no podrás volver a criarlo. La especie podrá salir de huevos otra vez.",
-          "L’entrée du Pokédex reste, mais sa progression est perdue et il ne pourra plus être élevé. L’espèce pourra de nouveau éclore.",
-          "O registro na Pokédex fica, mas o progresso se perde e ele não pode voltar. A espécie pode chocar de novo.",
-          "Der Pokédex-Eintrag bleibt, aber der Fortschritt ist weg und es kann nicht mehr aufgezogen werden. Die Art kann wieder schlüpfen.",
-          "Запись в Покедексе останется, но прогресс будет потерян и вернуть покемона нельзя. Этот вид снова сможет вылупиться.")
-    }
-    var storageReleaseConfirm: String { t("놓아주기", "Release", "逃がす", "Liberar", "Relâcher", "Soltar", "Freilassen", "Отпустить") }
     /// 인큐베이션 중 표시하는 보증 배지 — 어떤 알을 품고 있는지 한 줄로.
     func eggGuaranteeHint(_ tier: Rarity) -> String {
         let r = rarityLabel(tier)
         return t("\(r) 이상 확정", "\(r) or better", "\(r) 以上確定", "\(r) o superior garantizado", "\(r) ou mieux garanti", "\(r) ou melhor garantido", "Garantiert \(r) oder besser", "\(r) или выше")
     }
     func eggConfirm(_ monName: String, _ eggName: String) -> String {
-        t("\(KoreanParticle.object.attach(to: monName)) 보관하고 \(KoreanParticle.direction.attach(to: eggName)) 바꿀까요?",
-          "Store \(monName) and take the \(eggName)?",
-          "\(monName) を預けて \(eggName) にしますか？",
-          "¿Guardar a \(monName) y tomar \(eggName)?",
-          "Stocker \(monName) et prendre le \(eggName) ?",
-          "Guardar \(monName) e pegar o \(eggName)?",
-          "\(monName) einlagern und \(eggName) nehmen?",
-          "Отправить \(monName) на хранение и взять «\(eggName)»?")
+        t("\(KoreanParticle.object.attach(to: monName)) 놓아주고 \(KoreanParticle.direction.attach(to: eggName)) 바꿀까요?",
+          "Send off \(monName) for the \(eggName)?",
+          "\(monName) を手放して \(eggName) にしますか？",
+          "¿Soltar a \(monName) y cambiarlo por \(eggName)?",
+          "Laisser partir \(monName) pour le \(eggName) ?",
+          "Soltar \(monName) e trocar pelo \(eggName)?",
+          "\(monName) verabschieden und gegen \(eggName) tauschen?",
+          "Отпустить \(monName) и взять «\(eggName)»?")
     }
     var freshEggShinyWarning: String { t("⚠️ 이로치 포켓몬이에요! 정말 놓아줄까요?", "⚠️ This one is shiny! Really send it off?", "⚠️ 色違いです！本当に手放しますか？", "⚠️ ¡Este es variocolor! ¿Seguro que quieres soltarlo?", "⚠️ Celui-ci est chromatique ! Vraiment le laisser partir ?", "⚠️ Esse é shiny! Quer mesmo soltar?", "⚠️ Dieses Pokémon ist schillernd! Wirklich verabschieden?", "⚠️ Это шайни! Точно отпустить?") }
     var freshEggLegendaryWarning: String { t("⚠️ 전설 포켓몬이에요! 정말 놓아줄까요?", "⚠️ This is a Legendary Pokémon! Really send it off?", "⚠️ 伝説のポケモンです！本当に手放しますか？", "⚠️ ¡Es un Pokémon legendario! ¿Seguro que quieres soltarlo?", "⚠️ C'est un Pokémon légendaire ! Vraiment le laisser partir ?", "⚠️ Esse é um Pokémon lendário! Quer mesmo soltar?", "⚠️ Dieses Pokémon ist legendär! Wirklich verabschieden?", "⚠️ Это легендарный покемон! Точно отпустить?") }

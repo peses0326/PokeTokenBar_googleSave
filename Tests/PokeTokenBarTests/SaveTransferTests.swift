@@ -557,9 +557,7 @@ final class SaveTransferTests: XCTestCase {
                                      "pendingHatchID", "pendingForm", "eggPrayers", "active",
                                      "representativeSpeciesID", "representativeForm", "dex",
                                      "collectedFinals", "inventory",
-                                     "notifiedDexCompletions", "dexCompletionsSeeded",
-                                     // pausedEgg = 진행 — 이미 산 알(진행도·보증)이라 기기를 옮겨도 따라간다.
-                                     "pausedEgg"]
+                                     "notifiedDexCompletions", "dexCompletionsSeeded"]
         let deviceLedger: Set<String> = ["installBaselineSet", "claimedTodayTokensByProvider", "lastDate",
                                          "claimedCumulativeTokens"]
         let accountLedger: Set<String> = ["candyGrantTier", "candyWindowEpoch", "candyFeatureSeeded"]

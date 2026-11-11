@@ -172,41 +172,22 @@ enum SaveTransfer {
             var seen = Set<Int>()
             return ids.filter { seen.insert($0).inserted }
         }
-        func sanitizedMon(_ input: MonState) -> MonState {
-            var mon = input
-            mon.usedAtStage = clampToken(mon.usedAtStage)
+        if var active = s.active {
+            active.usedAtStage = clampToken(active.usedAtStage)
             // totalForms 는 `kk * (kk + 1)` 형태로 쓰여(PokemonBalance.phaseThreshold) 큰 값이 그 자체로 트랩이다.
-            mon.totalForms = min(max(1, mon.totalForms), 12)
-            mon.stageIndex = min(max(0, mon.stageIndex), max(0, mon.pathIDs.count - 1))
-            let currentID = mon.currentID
-            mon.pathIDs = deduped(mon.pathIDs)
-            mon.plannedPathIDs = deduped(mon.plannedPathIDs)
-            mon.stageIndex = mon.pathIDs.firstIndex(of: currentID) ?? mon.stageIndex
-            mon.stageIndex = min(mon.stageIndex, max(0, mon.pathIDs.count - 1))
-            mon.profile?.sanitize()
-            return mon
+            active.totalForms = min(max(1, active.totalForms), 12)
+            active.stageIndex = min(max(0, active.stageIndex), max(0, active.pathIDs.count - 1))
+            let currentID = active.currentID
+            active.pathIDs = deduped(active.pathIDs)
+            active.plannedPathIDs = deduped(active.plannedPathIDs)
+            active.stageIndex = active.pathIDs.firstIndex(of: currentID) ?? active.stageIndex
+            active.stageIndex = min(active.stageIndex, max(0, active.pathIDs.count - 1))
+            active.profile?.sanitize()
+            s.active = active
         }
-        if let active = s.active { s.active = sanitizedMon(active) }
-        // Stored individuals become `active` when raised, so they need the same guards.
         for index in s.dex.indices {
             s.dex[index].chainOrder = deduped(s.dex[index].chainOrder)
             s.dex[index].profile?.sanitize()
-            if let stored = s.dex[index].stored { s.dex[index].stored = sanitizedMon(stored) }
-        }
-        // A paused egg only exists beside a raised Pokémon. Without one, it becomes the current egg
-        // again rather than vanishing with the tokens paid for it.
-        if var paused = s.pausedEgg {
-            paused.usage = clampToken(paused.usage)
-            if paused.tier?.captureRateCeiling == nil { paused.tier = nil }
-            paused.pendingForm = PokemonForm.resolved(baseID: paused.pendingHatchID ?? 0, form: paused.pendingForm)
-            if s.active == nil {
-                s.eggUsage = paused.usage; s.eggTier = paused.tier
-                s.pendingHatchID = paused.pendingHatchID; s.pendingForm = paused.pendingForm
-                s.eggPrayers = paused.prayers
-                s.pausedEgg = nil
-            } else {
-                s.pausedEgg = paused
-            }
         }
         s.reconcileRepresentativeSelection()
         return s

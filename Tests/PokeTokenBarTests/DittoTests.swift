@@ -301,6 +301,9 @@ final class DittoRevealTests: XCTestCase {
         XCTAssertTrue(isSuspended)
 
         XCTAssertTrue(s.buyFreshEgg())
+        // The egg purchase stores the disguised individual; release it so the same base may hatch
+        // again as a normal Pokémon (a stored line otherwise only re-hatches as a shiny).
+        XCTAssertTrue(s.releaseStored(try XCTUnwrap(s.storedEntries.first).id))
         await s.hatch(baseID: 1)
         XCTAssertEqual(s.state.active?.baseID, 1)
         XCTAssertFalse(s.state.active?.dittoRevealed ?? true)

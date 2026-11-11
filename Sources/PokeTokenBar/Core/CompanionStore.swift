@@ -1456,6 +1456,14 @@ final class CompanionStore {
     /// otherwise storing would hand out a free egg and make the shop egg pointless.
     var hasPausedEgg: Bool { state.pausedEgg != nil }
 
+    /// Evolution lines with an individual in storage — eggs only hatch these again as shinies.
+    var storedBaseIDs: Set<Int> { Set(state.dex.compactMap { $0.stored?.baseID }) }
+
+    /// Immediate re-rolls before falling back to the next update tick, so a pool made only of stored
+    /// lines cannot spin the network in a tight loop.
+    static let maxImmediateStoredRerolls = 8
+    private var storedLineRerolls = 0
+
     var canStoreActive: Bool { state.active != nil && state.pausedEgg != nil && !isHatching }
 
     /// Put the raised Pokémon into storage and resume the paused egg.
@@ -1902,6 +1910,28 @@ final class CompanionStore {
             save()
             return
         }
+        // A line already in storage only hatches again as a shiny. The shiny roll happens here for those
+        // lines only, so every other line keeps its RNG sequence; the result is the line's natural odds
+        // times the shiny odds. A failed roll keeps the egg (and any paid guarantee) and re-rolls.
+        var storedLineShiny = false
+        if storedBaseIDs.contains(line.baseID) {
+            guard Self.rollsShiny(roll: rng.next(), charmOwned: ownsShinyCharm) else {
+                AppLog.write("hatch: base \(line.baseID) is in storage and not shiny — discarded, re-roll")
+                state.pendingHatchID = nil
+                state.pendingForm = nil
+                prefetchedLineID = nil
+                save()
+                storedLineRerolls += 1
+                if storedLineRerolls < Self.maxImmediateStoredRerolls {
+                    Task { await self.ensureEggPrefetch() }   // runs after this hatch releases its lock
+                } else {
+                    markHatchRetryDelayedIfReady(generation: generation)
+                }
+                return
+            }
+            storedLineShiny = true
+        }
+        storedLineRerolls = 0
         state.pendingHatchID = nil
         state.pendingForm = nil
         // A later egg can roll the same species with another form and must warm its own sprite.
@@ -1917,7 +1947,7 @@ final class CompanionStore {
         // 개체 롤 — shiny(1/64, 부적 1/48)·성격(25종)은 부화 순간 확정, 진화해도 유지.
         // 알림 문구는 이 판정과 같은 분모를 보여준다.
         let shinyOdds = shinyDenominator
-        let isShiny = Self.rollsShiny(roll: rng.next(), charmOwned: ownsShinyCharm)
+        let isShiny = storedLineShiny || Self.rollsShiny(roll: rng.next(), charmOwned: ownsShinyCharm)
         let nature = PokemonNature.allCases[Int(rng.next() % UInt64(PokemonNature.allCases.count))]
         // 메타몽 위장 롤 — common·≥2형태에 한해 1/128. .app 게이트(&& 단락 → 비앱에선 rng 미소비로
         // 기존 테스트 RNG 시퀀스 무영향). 위장/리빌 로직은 상태 기반으로 별도 테스트한다.

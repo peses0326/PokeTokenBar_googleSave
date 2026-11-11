@@ -1928,14 +1928,14 @@ struct L {
     /// → 놓아준 종의 부화 가중치는 100% 를 유지한다. 재인큐베이션은 말하지 않는다(`eggDescription`
     /// 의 "새 알로 다시 시작해요" 와 중복).
     var eggReleaseNote: String {
-        t("보관한 포켓몬은 진행 그대로 남아 도감에서 언제든 다시 키울 수 있어요.",
-          "Stored Pokémon keep their progress — raise them again from the Pokédex any time.",
-          "預けたポケモンは進み具合そのままで、図鑑からいつでもまた育てられます。",
-          "Los Pokémon guardados conservan su progreso: vuelve a criarlos desde la Pokédex cuando quieras.",
-          "Les Pokémon stockés gardent leur progression : reprends-les depuis le Pokédex quand tu veux.",
-          "Pokémon guardados mantêm o progresso — volte a criá-los pela Pokédex quando quiser.",
-          "Eingelagerte Pokémon behalten ihren Fortschritt – zieh sie jederzeit über den Pokédex weiter auf.",
-          "Покемоны на хранении сохраняют прогресс — вернитесь к ним в Покедексе в любой момент.")
+        t("보관한 포켓몬은 진행 그대로 남아 도감에서 언제든 다시 키울 수 있어요. 보관 중인 종은 알에서 이로치로만 나와요.",
+          "Stored Pokémon keep their progress — raise them again from the Pokédex any time. A stored species only hatches again as a shiny.",
+          "預けたポケモンは進み具合そのままで、図鑑からいつでもまた育てられます。預かり中の種類はタマゴから色違いでしか出ません。",
+          "Los Pokémon guardados conservan su progreso: vuelve a criarlos desde la Pokédex cuando quieras. Una especie guardada solo vuelve a salir variocolor.",
+          "Les Pokémon stockés gardent leur progression : reprends-les depuis le Pokédex quand tu veux. Une espèce stockée ne réapparaît qu’en chromatique.",
+          "Pokémon guardados mantêm o progresso — volte a criá-los pela Pokédex quando quiser. Uma espécie guardada só volta a chocar shiny.",
+          "Eingelagerte Pokémon behalten ihren Fortschritt – zieh sie jederzeit über den Pokédex weiter auf. Eine eingelagerte Art schlüpft nur noch schillernd.",
+          "Покемоны на хранении сохраняют прогресс — вернитесь к ним в Покедексе в любой момент. Вид на хранении вылупится снова только шайни.")
     }
     /// Shop egg card: a paused egg blocks buying another one (it would be overwritten).
     var eggPausedHint: String {

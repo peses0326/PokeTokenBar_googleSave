@@ -182,3 +182,59 @@ final class PokemonStorageTests: XCTestCase {
         XCTAssertEqual(kept.dex[0].stored?.usedAtStage, 0)
     }
 }
+
+/// Eggs never hatch a line that is in storage unless the hatch is shiny.
+@MainActor
+final class StoredLineHatchTests: XCTestCase {
+    private func store(seed: UInt64, storedBase: Int?) throws -> CompanionStore {
+        var state = CompanionState()
+        if let storedBase {
+            let mon = MonState(baseID: storedBase, pathIDs: [storedBase], stageIndex: 0, usedAtStage: 0,
+                               rarity: .common, totalForms: 3)
+            state.dex = [DexEntry(baseID: storedBase, finalID: storedBase, chainOrder: [storedBase],
+                                  rarity: .common, caughtAt: nil, stored: mon)]
+        }
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("stored-hatch-\(UUID()).json")
+        try JSONEncoder().encode(state).write(to: url)
+        return CompanionStore(provider: StubProvider(value: storageLine()), clock: { Date() },
+                              fileURL: url, rng: SeededRNG(seed: seed))
+    }
+
+    func testStoredLineOnlyHatchesAsShiny() async throws {
+        var shinyHatches = 0, discarded = 0
+        for seed in UInt64(1)...640 {
+            let s = try store(seed: seed, storedBase: 1)
+            await s.hatch(baseID: 1)
+            if let active = s.state.active {
+                XCTAssertTrue(active.isShiny, "seed \(seed): a stored line hatched as a normal Pokémon")
+                shinyHatches += 1
+            } else {
+                XCTAssertNil(s.state.pendingHatchID, "the rejected pre-roll is dropped so the next roll is fresh")
+                discarded += 1
+            }
+        }
+        XCTAssertGreaterThan(shinyHatches, 0, "a shiny of a stored line must still be possible")
+        XCTAssertGreaterThan(discarded, shinyHatches * 20, "normal hatches of a stored line are rejected")
+    }
+
+    /// Lines without a stored individual hatch exactly as before (same RNG sequence, normal odds).
+    func testOtherLinesAreUnaffected() async throws {
+        for seed in UInt64(1)...64 {
+            let plain = try store(seed: seed, storedBase: nil)
+            let other = try store(seed: seed, storedBase: 99)
+            await plain.hatch(baseID: 1)
+            await other.hatch(baseID: 1)
+            XCTAssertNotNil(other.state.active)
+            XCTAssertEqual(other.state.active?.isShiny, plain.state.active?.isShiny)
+            XCTAssertEqual(other.state.active?.nature, plain.state.active?.nature)
+        }
+    }
+
+    func testReleasingFromStorageLiftsTheRestriction() async throws {
+        let s = try store(seed: 3, storedBase: 1)
+        XCTAssertTrue(s.releaseStored(s.state.dex[0].id))
+        XCTAssertTrue(s.storedBaseIDs.isEmpty)
+        await s.hatch(baseID: 1)
+        XCTAssertNotNil(s.state.active)
+    }
+}

@@ -104,6 +104,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         if !AppEnv.isCloudPreview {
             Self.migrateLegacyStorageIfNeeded()
             LoginItem.migrateFromLegacyLoginItemIfNeeded()
+        } else {
+            AppStatePaths.migrateLegacyPreviewIfNeeded()
         }
         store = UsageStore()
         companion = CompanionStore()
@@ -159,7 +161,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         }
         let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 420, height: 540),
                               styleMask: [.titled, .closable, .miniaturizable], backing: .buffered, defer: false)
-        window.title = "PokeTokenBar Google Preview — Settings"
+        window.title = "PokeTokenBar_GoogleSave — Settings"
         window.isReleasedWhenClosed = false
         window.contentViewController = NSHostingController(rootView: SettingsView(
             onClose: { [weak self] in self?.previewSettingsWindow?.close() },

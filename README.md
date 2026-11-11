@@ -1,8 +1,8 @@
 <div align="center">
 
-<img src="assets/googlesave/logo.png" width="96" alt="PokeTokenBar_GoogleSave logo"> &nbsp; <img src="assets/googlesave/egg.png" width="96" alt="Pixel egg">
+<img src="assets/googlesave/logo.png" width="96" alt="PokemonTokenBar_gs logo"> &nbsp; <img src="assets/googlesave/egg.png" width="96" alt="Pixel egg">
 
-## PokeTokenBar_GoogleSave
+## PokemonTokenBar_gs
 
 **This is [PokeTokenBar](https://github.com/chattymin/PokeTokenBar) with the features I needed added.**
 Everything below this section is the original README.
@@ -11,13 +11,13 @@ Everything below this section is the original README.
 
 **Differences from the original**
 
-| | Original PokeTokenBar | PokeTokenBar_GoogleSave |
+| | Original PokeTokenBar | PokemonTokenBar_gs |
 |---|---|---|
 | Save sync | Manual save export/import | Automatic backup to `PokeTokenBar_Save` in your own Google Drive (`drive.file` scope only), continue on another Mac |
-| App identity | `PokeTokenBar.app` | `PokeTokenBar_GoogleSave.app` with its own bundle id and data folder, installs alongside the original |
+| App identity | `PokeTokenBar.app` | `PokemonTokenBar_gs.app` with its own bundle id and data folder, installs alongside the original |
 | Egg prices | 1B / 2.5B / 4B | 700M / 1.75B / 2.8B (30% off) |
 
-Build: `python3 scripts/build-google-preview.py --google-client-id 'YOUR_CLIENT_ID.apps.googleusercontent.com'` → `build/google-preview/PokeTokenBar_GoogleSave.app`
+Build: `python3 scripts/build-google-preview.py --google-client-id 'YOUR_CLIENT_ID.apps.googleusercontent.com'` → `build/google-preview/PokemonTokenBar_gs.app`
 [Privacy Policy](https://peses0326.github.io/PokeTokenBar_googleSave/privacy.html) · [Terms of Service](https://peses0326.github.io/PokeTokenBar_googleSave/terms.html)
 
 ---

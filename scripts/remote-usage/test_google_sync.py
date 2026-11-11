@@ -296,6 +296,39 @@ class GoogleSyncTests(unittest.TestCase):
         self.assertFalse((self.directory / "denied/credentials.json").exists())
 
 
+class SignInWindowTest(unittest.TestCase):
+    def test_listener_waits_the_full_window_then_reports_a_timeout(self):
+        clock = {"now": 0.0, "requests": 0}
+
+        class IdleServer:
+            server_port = 53126
+            timeout = None
+
+            def __init__(self, *args):
+                pass
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *args):
+                return False
+
+            def handle_request(self):
+                clock["requests"] += 1
+                clock["now"] += 60  # the browser never comes back
+
+        with tempfile.TemporaryDirectory() as directory:
+            client = Path(directory) / "client.json"
+            client.write_text(json.dumps({"installed": {"client_id": "test.apps.googleusercontent.com"}}))
+            with patch.object(cloud.http.server, "HTTPServer", IdleServer), \
+                    patch.object(cloud.webbrowser, "open", lambda url: True), \
+                    patch.object(cloud.time, "monotonic", lambda: clock["now"]):
+                with self.assertRaisesRegex(cloud.SyncError, "timed out after 10 minutes"):
+                    cloud.authorize(Path(directory) / "auth", client)
+        self.assertGreaterEqual(cloud.SIGN_IN_WINDOW_SECONDS, 600)
+        self.assertEqual(clock["requests"], cloud.SIGN_IN_WINDOW_SECONDS // 60)
+
+
 class FolderTransport(cloud.Google):
     """Exercise the real folder/list/multipart code without network or account credentials."""
     def __init__(self, folders=()):

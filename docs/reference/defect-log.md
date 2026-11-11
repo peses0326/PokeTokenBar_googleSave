@@ -918,6 +918,15 @@ read_when:
   타야 한다 — `write()`+`flush()` 두 번째 쌍은 가드가 안 되고, `flush()` 만 빼면 스위트가
   초록인데 #174 가 다시 산다. (#174)
 
+- **두 프로세스가 같은 대기를 나눠 가지면 짧은 쪽 타이머가 상한이다 (Google 로그인 `127.0.0.1` 연결 거부).**
+  로그인 루프백 수신기는 Python 헬퍼 안에 있고, 헬퍼는 240초, 앱의 `ProcessRunner` 는 300초를 기다렸다.
+  동의 화면·"확인되지 않은 앱" 경고·테스트 사용자 추가를 하다 보면 4분을 넘기고, 그 사이 수신기가 종료돼
+  브라우저는 Google 승인 코드를 받은 채 "연결 거부" 만 보였다. 기존 테스트는 콜백이 즉시 오는 경로만 밟아
+  대기 시간이 끝나는 브랜치를 한 번도 실행하지 않았다. 이제 창은 `SIGN_IN_WINDOW_SECONDS`(600초) 한 곳에
+  두고 Swift 는 `GoogleCloudSync.signInWindow` 로 미러링한다. `GoogleSignInWindowTests` 가 두 값의 일치와
+  앱 타임아웃 > 헬퍼 창을, `SignInWindowTest`(Python) 가 창 끝까지 기다린 뒤의 타임아웃 메시지를 검증한다.
+  다른 언어 경계에 같은 상수를 둘 때는 한쪽 소스를 파싱해 비교하는 테스트로 묶는다.
+
 ## 표시·UI
 
 - **Floating-pet features share one click route and one bubble reservation.** Agent activity (#457)

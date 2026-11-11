@@ -698,8 +698,8 @@ struct CompanionHeader: View {
         let dexLinks = onOpenDexEntry == nil ? [:] : store.dexLinkTargets
         VStack(alignment: .leading, spacing: 6) {
             HStack(alignment: .center, spacing: 12) {
-                SpriteView(speciesID: store.currentSpeciesID, size: 76, bob: true, animated: true,
-                           shiny: store.currentIsShiny, spriteStore: spriteStore, form: store.currentForm,
+                SpriteView(speciesID: store.displaySpeciesID, size: 76, bob: true, animated: true,
+                           shiny: store.currentIsShiny, spriteStore: spriteStore, form: store.displayForm,
                            back: store.facesBack)
                     .frame(width: 76, height: 76)
                     .background(Color.secondary.opacity(0.06))
@@ -747,6 +747,7 @@ struct CompanionHeader: View {
                         target: store.currentSpeciesID.flatMap { dexLinks[$0] },
                         hint: store.l.dexOpenEntryHint, accessibilityName: store.displayName,
                         cornerRadius: 12, open: onOpenDexEntry))
+                    .contextMenu { if store.hasActive { AppearanceMenu(store: store) } }
                 VStack(alignment: .leading, spacing: 4) {
                     HStack(spacing: 6) {
                         Text(store.displayName).font(.callout.weight(.semibold))
@@ -2191,7 +2192,15 @@ private struct DexSpeciesCell: View {
                 Label(l.storageRelease(name), systemImage: "leaf")
             }
         }
-        if species.isRaising || !stored.isEmpty { Divider() }
+        // Any stage the raised Pokémon has reached can be its look (the main grid does not split forms).
+        let showsAppearance = store.state.active?.unlockedAppearanceIDs.contains(species.id) == true
+        if showsAppearance {
+            Button { store.setAppearance(species.id) } label: {
+                Label(l.appearanceShow(species.name), systemImage: "sparkles.rectangle.stack")
+            }
+            .disabled(store.appearanceSelection == species.id)
+        }
+        if species.isRaising || !stored.isEmpty || showsAppearance { Divider() }
     }
 
     private func confirmRelease(_ entry: DexEntry, name: String) {
@@ -2307,6 +2316,36 @@ private struct DexEntryRow: View {
         .clipShape(RoundedRectangle(cornerRadius: 10))
         .task(id: "\(entry.id)-\(store.language.rawValue)") {
             resolved = await store.dexResolveChainNames(entry)
+        }
+    }
+}
+
+/// 모습 선택 — reached stages are selectable; unreached ones stay locked and unnamed (no branch spoilers).
+@MainActor
+struct AppearanceMenu: View {
+    let store: CompanionStore
+
+    var body: some View {
+        let l = store.l
+        Menu {
+            Button { store.setAppearance(nil) } label: {
+                if store.appearanceSelection == nil { Label(l.appearanceFollowCurrent, systemImage: "checkmark") }
+                else { Text(l.appearanceFollowCurrent) }
+            }
+            Divider()
+            ForEach(store.appearanceChoices, id: \.id) { choice in
+                if choice.unlocked {
+                    let name = store.lineSpeciesName(choice.id)
+                    Button { store.setAppearance(choice.id) } label: {
+                        if store.appearanceSelection == choice.id { Label(name, systemImage: "checkmark") }
+                        else { Text(name) }
+                    }
+                } else {
+                    Button(l.appearanceLocked) {}.disabled(true)
+                }
+            }
+        } label: {
+            Label(l.appearanceMenu, systemImage: "sparkles.rectangle.stack")
         }
     }
 }

@@ -2104,7 +2104,6 @@ private struct DexSpeciesCell: View {
                     // Keep the raising badge over the sprite to leave room for the name.
                     .overlay(alignment: .bottom) {
                         if species.isRaising { raisingBadge.fixedSize() }
-                        else if species.isStored { storedBadge.fixedSize() }
                     }
                 Text(formCount.map { "\(species.name) \($0)/\(formTotal)" } ?? species.name)
                     .font(.system(size: 12))
@@ -2153,7 +2152,7 @@ private struct DexSpeciesCell: View {
         .help(tooltip)
         .accessibilityLabel(tooltip)
         .contextMenu {
-            storageMenu
+            appearanceDexMenu
             if formCount != nil {
                 Button(store.l.chooseForm, action: onTap)
             } else {
@@ -2168,50 +2167,17 @@ private struct DexSpeciesCell: View {
         }
     }
 
-    /// 보관/키우기/놓아주기 — above the representative item. Raising swaps the current Pokémon into
-    /// storage (an egg in progress is paused); storing on its own only resumes a paused egg.
+    /// 모습 선택 — any stage the raised Pokémon has reached can be its look, above the representative item.
     @ViewBuilder
-    private var storageMenu: some View {
-        let l = store.l
-        let stored = store.storedEntries(for: species)
-        if species.isRaising {
-            if store.canStoreActive {
-                Button { store.storeActive() } label: { Label(l.storageStore, systemImage: "tray.and.arrow.down") }
-            } else {
-                Button {} label: { Label(l.storageStoreNeedsEgg, systemImage: "tray.and.arrow.down") }
-                    .disabled(true)
-            }
-        }
-        ForEach(stored) { entry in
-            let name = (entry.isShiny ? "✨" : "") + store.dexEntryName(entry)
-            Button { _ = store.raiseStored(entry.id) } label: {
-                Label(l.storageRaise(name), systemImage: "arrow.up.heart")
-            }
-            .disabled(!store.canRaiseStored(entry.id))
-            Button(role: .destructive) { confirmRelease(entry, name: name) } label: {
-                Label(l.storageRelease(name), systemImage: "leaf")
-            }
-        }
-        // Any stage the raised Pokémon has reached can be its look (the main grid does not split forms).
-        let showsAppearance = store.state.active?.unlockedAppearanceIDs.contains(species.id) == true
-        if showsAppearance {
+    private var appearanceDexMenu: some View {
+        // The main grid does not split forms, so the species id alone identifies the stage.
+        if store.state.active?.unlockedAppearanceIDs.contains(species.id) == true {
             Button { store.setAppearance(species.id) } label: {
-                Label(l.appearanceShow(species.name), systemImage: "sparkles.rectangle.stack")
+                Label(store.l.appearanceShow(species.name), systemImage: "sparkles.rectangle.stack")
             }
             .disabled(store.appearanceSelection == species.id)
+            Divider()
         }
-        if species.isRaising || !stored.isEmpty || showsAppearance { Divider() }
-    }
-
-    private func confirmRelease(_ entry: DexEntry, name: String) {
-        let alert = NSAlert()
-        alert.messageText = store.l.storageReleaseTitle(name)
-        alert.informativeText = store.l.storageReleaseBody
-        alert.alertStyle = .warning
-        alert.addButton(withTitle: store.l.cancel)
-        alert.addButton(withTitle: store.l.storageReleaseConfirm)
-        guard alert.runModal() == .alertSecondButtonReturn else { return }
-        store.releaseStored(entry.id)
     }
 
     /// material 판 — 어두운 스프라이트 위에서도 읽히게(라이트/다크 자동).
@@ -2243,12 +2209,6 @@ private struct DexSpeciesCell: View {
             .background(.regularMaterial, in: Capsule())
     }
 
-    /// 보관 중 — neutral tint: kept, not being raised.
-    private var storedBadge: some View {
-        Badge(store.l.dexStored.uppercased(), tint: .secondary, style: .tinted, size: 10)
-            .background(.regularMaterial, in: Capsule())
-    }
-
     /// 툴팁과 접근성 라벨이 같은 문장을 쓴다 — 칸이 글자로 못 보여주는 희귀도를 담는다.
     /// ✨ 는 이모지라 스크린리더가 일관되게 읽지 못하므로 명사로 함께 넣는다.
     private var tooltip: String {
@@ -2256,7 +2216,6 @@ private struct DexSpeciesCell: View {
         if let formCount { parts.append(store.l.formsCollected(formCount, of: formTotal)) }
         if species.isShiny { parts.append(store.l.dexShinyLabel) }
         if species.isRaising { parts.append(store.l.dexRaising) }
-        else if species.isStored { parts.append(store.l.dexStored) }
         if isRepresentative { parts.append(store.l.representativeBadge) }
         return parts.joined(separator: " · ")
     }
@@ -2283,8 +2242,6 @@ private struct DexEntryRow: View {
                 Badge(store.l.rarityLabel(entry.rarity).uppercased(), tint: .rarity(entry.rarity), size: 10)
                 if store.isActiveDexEntry(entry) {
                     Badge(store.l.dexRaising.uppercased(), tint: .accent, style: .tinted, size: 10)
-                } else if entry.isStored {
-                    Badge(store.l.dexStored.uppercased(), tint: .secondary, style: .tinted, size: 10)
                 } else if entry.isReleased {
                     // 놓아준 개체 — 종은 도감에 남지만 이 개체는 끝까지 키우지 않았다.
                     // 중립색(secondary)으로 둔다: 실패가 아니라 다른 종류의 기록이라 경고색은 과하다.

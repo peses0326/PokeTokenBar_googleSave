@@ -385,13 +385,7 @@ final class CompanionStore {
     ///
     /// 이로치는 `currentIsShiny` — 위장 중인 메타몽은 리빌 전까지 숨긴다(`activeDexEntry` 와 단일 판정).
     /// `caughtAt` 은 놓아준 시각이다: 포획 로그가 그 값으로 정렬하므로 기록이 남은 시점과 일치해야 한다.
-    private func releasedDexEntry(from a: MonState) -> DexEntry { archivedDexEntry(from: a, storing: false) }
-
-    /// Storage record (보관 중): the same reached-stage chain as a release, plus the whole `MonState`
-    /// so the individual can be raised again with its stage, growth and identity intact.
-    private func storedDexEntry(from a: MonState) -> DexEntry { archivedDexEntry(from: a, storing: true) }
-
-    private func archivedDexEntry(from a: MonState, storing: Bool) -> DexEntry {
+    private func releasedDexEntry(from a: MonState) -> DexEntry {
         // stageIndex 가 음수·범위 밖이어도 최소 한 형태는 남긴다(손상 상태 파일 방어 — MonState.currentID 와 같은 태도).
         let reached = Array(a.pathIDs.prefix(max(1, a.stageIndex + 1)))
         let chain = reached.isEmpty ? [a.baseID] : reached
@@ -410,8 +404,7 @@ final class CompanionStore {
                 Dictionary(uniqueKeysWithValues:
                     chain.compactMap { id in line.names[id].map { (id, $0) } })
             },
-            releasedAt: storing ? nil : now, form: a.form, prayers: a.prayers,
-            stored: storing ? a : nil)
+            releasedAt: now, form: a.form, prayers: a.prayers)
     }
 
     var dexEntries: [DexEntry] {
@@ -473,8 +466,6 @@ final class CompanionStore {
         let isShiny: Bool               // 이 종을 이로치로 보유한 적이 있는가
         /// 이 종이 현재 키우는 개체의 **현재 형태**인가. 지나온 진화 단계에는 서지 않는다.
         let isRaising: Bool
-        /// A stored individual's **current form** is this species (보관 중).
-        var isStored = false
         var form: PokemonForm? = nil
         var names: [String: String]? = nil
         var hasNormal = false
@@ -505,7 +496,6 @@ final class CompanionStore {
         var names: [String: String]?
         var isShiny = false
         var hasNormal = false
-        var isStored = false
     }
 
     /// 도감 목록 — 보유 종만, 도감 번호 오름차순.
@@ -607,7 +597,6 @@ final class CompanionStore {
                 var a = acc[key] ?? DexAccumulator(rarity: entry.rarity)
                 if let n = entry.names?[id] { a.names = n }   // 이름 없는 구버전 항목이 덮어쓰지 않게
                 if entry.isShiny { a.isShiny = true } else { a.hasNormal = true }
-                if id == entry.stored?.currentID { a.isStored = true }
                 acc[key] = a
             }
         }
@@ -633,7 +622,6 @@ final class CompanionStore {
                 rarity: a.rarity,
                 isShiny: a.isShiny,
                 isRaising: key.speciesID == state.active?.currentID && (!groupForms || key.form == currentForm),
-                isStored: a.isStored,
                 form: key.form,
                 names: a.names,
                 hasNormal: a.hasNormal)
@@ -1209,7 +1197,6 @@ final class CompanionStore {
         currentLine = nil
         state.eggUsage = 0   // 새 알은 처음부터 인큐베이션
         state.resetEggPrayers()
-        resumePausedEgg()    // a paused (already paid) egg takes the place of the free one
         isHatchRetryDelayed = false
         // eggTier 는 손대지 않는다 — 여기 도달했다는 건 활성 포켓몬이 있었다는 뜻이라 보증은 이미 nil 이다
         // (부화가 소비, 디스크/불러오기는 sanitized 가 정규화). 소비 지점은 hatchCore 한 곳으로 유지한다.
@@ -1427,9 +1414,6 @@ final class CompanionStore {
         // 새 알 구매는 `hasActive` 에 막혀 되돌릴 수단이 없다. 가격만 계산되면 값이 빠져나가므로
         // 판매 목록을 여기서 강제한다(호출부 하나가 실수하면 토큰이 통째로 사라진다).
         guard FreshEgg.shopTiers.contains(tier) else { return false }
-        // A paused egg is already paid for; a second egg would overwrite it. Store the current
-        // Pokémon instead — that resumes the paused egg.
-        guard state.pausedEgg == nil else { return false }
         return hasActive && availableTokens >= price(of: .egg(tier))
     }
 
@@ -1446,10 +1430,9 @@ final class CompanionStore {
         guard canBuyEgg(tier) else { return false }
         state.spentTokens += price(of: .egg(tier))
         if let a = state.active {
-            // 보관 — the individual keeps its progress and can be raised again from the Pokédex.
-            state.dex.append(storedDexEntry(from: a))
+            state.dex.append(releasedDexEntry(from: a))   // 놓아줌 기록 — 도감에서 종이 사라지지 않게
         }
-        state.active = nil            // 보관 (졸업 아님 — collectedFinals 는 미변경)
+        state.active = nil            // 놓아줌 (졸업 아님 — collectedFinals 는 미변경)
         // 놓아준 종도 이제 dex 에 있으므로 대표 선택은 유지된다. 손상 상태 파일 등으로 정말 보유가
         // 끊긴 경우만 자동 추적으로 복귀한다.
         state.reconcileRepresentativeSelection()
@@ -1463,119 +1446,10 @@ final class CompanionStore {
         state.pendingForm = nil
         prefetchedLineID = nil
         justGraduated = nil; justEvolvedTo = nil; eventUntil = nil
-        AppLog.write("egg purchased: stored active, tier=\(tier?.rawValue ?? "none")")
+        AppLog.write("egg purchased: discarded active, tier=\(tier?.rawValue ?? "none")")
         Task { await self.ensureEggPrefetch() }   // 다음 부화 예열
         save()
         return true
-    }
-
-    // MARK: 보관 (storage)
-
-    /// Stored individuals, newest first.
-    var storedEntries: [DexEntry] {
-        state.dex.filter(\.isStored).sorted { ($0.caughtAt ?? .distantPast) > ($1.caughtAt ?? .distantPast) }
-    }
-
-    /// Stored individuals whose current form is this Pokédex cell.
-    func storedEntries(for species: DexSpecies) -> [DexEntry] {
-        storedEntries.filter { entry in
-            guard let mon = entry.stored, mon.currentID == species.id else { return false }
-            return species.form == nil || PokemonForm.resolved(speciesID: species.id, form: mon.form) == species.form
-        }
-    }
-
-    /// Whether the raised Pokémon can go into storage on its own. Only when a paused egg is waiting —
-    /// otherwise storing would hand out a free egg and make the shop egg pointless.
-    var hasPausedEgg: Bool { state.pausedEgg != nil }
-
-    /// Evolution lines with an individual in storage — eggs only hatch these again as shinies.
-    var storedBaseIDs: Set<Int> { Set(state.dex.compactMap { $0.stored?.baseID }) }
-
-    /// Immediate re-rolls before falling back to the next update tick, so a pool made only of stored
-    /// lines cannot spin the network in a tight loop.
-    static let maxImmediateStoredRerolls = 8
-    private var storedLineRerolls = 0
-
-    var canStoreActive: Bool { state.active != nil && state.pausedEgg != nil && !isHatching }
-
-    /// Put the raised Pokémon into storage and resume the paused egg.
-    @discardableResult
-    func storeActive() -> Bool {
-        guard canStoreActive, let a = state.active else { return false }
-        state.dex.append(storedDexEntry(from: a))
-        state.active = nil
-        resumePausedEgg()
-        finishSubjectSwitch(log: "storage: stored active, resumed paused egg")
-        return true
-    }
-
-    func canRaiseStored(_ entryID: String) -> Bool {
-        !isHatching && state.dex.contains { $0.id == entryID && $0.isStored }
-    }
-
-    /// Raise a stored individual again. The current Pokémon is stored in its place; an egg in
-    /// progress is paused with its incubation, paid guarantee and pre-roll intact.
-    @discardableResult
-    func raiseStored(_ entryID: String) -> Bool {
-        guard canRaiseStored(entryID),
-              let index = state.dex.firstIndex(where: { $0.id == entryID }),
-              let mon = state.dex[index].stored else { return false }
-        state.dex.remove(at: index)
-        if let current = state.active {
-            state.dex.append(storedDexEntry(from: current))
-        } else {
-            state.pausedEgg = PausedEgg(usage: state.eggUsage, tier: state.eggTier,
-                                        pendingHatchID: state.pendingHatchID, pendingForm: state.pendingForm,
-                                        prayers: state.eggPrayers)
-            state.eggUsage = 0
-            state.eggTier = nil
-            state.pendingHatchID = nil
-            state.pendingForm = nil
-            state.resetEggPrayers()
-        }
-        state.active = mon
-        finishSubjectSwitch(log: "storage: raised stored base=\(mon.baseID) current=\(mon.currentID)")
-        return true
-    }
-
-    /// Release a stored individual for good. The species stays in the Pokédex as a released record.
-    @discardableResult
-    func releaseStored(_ entryID: String) -> Bool {
-        guard let index = state.dex.firstIndex(where: { $0.id == entryID && $0.isStored }) else { return false }
-        state.dex[index].stored = nil
-        state.dex[index].releasedAt = clock()
-        AppLog.write("storage: released stored entry")
-        save()
-        return true
-    }
-
-    /// Move the paused egg back into the egg slot. Callers have just cleared `active`.
-    private func resumePausedEgg() {
-        guard let paused = state.pausedEgg else { return }
-        state.pausedEgg = nil
-        state.eggUsage = paused.usage
-        state.eggTier = paused.tier
-        state.pendingHatchID = paused.pendingHatchID
-        state.pendingForm = paused.pendingForm
-        state.eggPrayers = paused.prayers
-    }
-
-    /// Shared tail of every subject swap: invalidate in-flight hatch/line work and reload what the
-    /// new subject needs (its evolution line, or the egg's prefetch).
-    private func finishSubjectSwitch(log: String) {
-        activeGeneration += 1
-        currentLine = nil
-        prefetchedLineID = nil
-        isHatchRetryDelayed = false
-        justGraduated = nil; justEvolvedTo = nil; eventUntil = nil
-        state.reconcileRepresentativeSelection()
-        AppLog.write(log)
-        if state.active != nil {
-            kickLineLoadIfNeeded()
-        } else {
-            Task { await self.ensureEggPrefetch() }
-        }
-        save()
     }
 
     /// Pray over the egg. A placebo: it only counts, and never touches an RNG or a roll — the species is
@@ -1942,28 +1816,6 @@ final class CompanionStore {
             save()
             return
         }
-        // A line already in storage only hatches again as a shiny. The shiny roll happens here for those
-        // lines only, so every other line keeps its RNG sequence; the result is the line's natural odds
-        // times the shiny odds. A failed roll keeps the egg (and any paid guarantee) and re-rolls.
-        var storedLineShiny = false
-        if storedBaseIDs.contains(line.baseID) {
-            guard Self.rollsShiny(roll: rng.next(), charmOwned: ownsShinyCharm) else {
-                AppLog.write("hatch: base \(line.baseID) is in storage and not shiny — discarded, re-roll")
-                state.pendingHatchID = nil
-                state.pendingForm = nil
-                prefetchedLineID = nil
-                save()
-                storedLineRerolls += 1
-                if storedLineRerolls < Self.maxImmediateStoredRerolls {
-                    Task { await self.ensureEggPrefetch() }   // runs after this hatch releases its lock
-                } else {
-                    markHatchRetryDelayedIfReady(generation: generation)
-                }
-                return
-            }
-            storedLineShiny = true
-        }
-        storedLineRerolls = 0
         state.pendingHatchID = nil
         state.pendingForm = nil
         // A later egg can roll the same species with another form and must warm its own sprite.
@@ -1979,7 +1831,7 @@ final class CompanionStore {
         // 개체 롤 — shiny(1/64, 부적 1/48)·성격(25종)은 부화 순간 확정, 진화해도 유지.
         // 알림 문구는 이 판정과 같은 분모를 보여준다.
         let shinyOdds = shinyDenominator
-        let isShiny = storedLineShiny || Self.rollsShiny(roll: rng.next(), charmOwned: ownsShinyCharm)
+        let isShiny = Self.rollsShiny(roll: rng.next(), charmOwned: ownsShinyCharm)
         let nature = PokemonNature.allCases[Int(rng.next() % UInt64(PokemonNature.allCases.count))]
         // 메타몽 위장 롤 — common·≥2형태에 한해 1/128. .app 게이트(&& 단락 → 비앱에선 rng 미소비로
         // 기존 테스트 RNG 시퀀스 무영향). 위장/리빌 로직은 상태 기반으로 별도 테스트한다.

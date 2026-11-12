@@ -511,6 +511,8 @@ struct L {
     func petMotionName(_ motion: PetMotion) -> String {
         switch motion {
         case .hop: return t("깡충 뛰기", "Hop", "ジャンプ", "Saltito", "Petit saut", "Pulinho", "Hüpfen", "Прыжок")
+        case .walk: return t("좌우로 돌아다니기", "Walk around", "うろうろ歩く", "Pasear", "Se promener",
+                             "Passear", "Herumlaufen", "Гулять")
         case .lookAround: return t("두리번거리기", "Look around", "きょろきょろ", "Mirar alrededor", "Regarder autour",
                                    "Olhar em volta", "Umschauen", "Оглядеться")
         case .wiggle: return t("흔들기", "Wiggle", "ぷるぷる", "Menearse", "Se trémousser", "Chacoalhar", "Wackeln", "Покачаться")

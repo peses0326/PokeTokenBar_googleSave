@@ -235,10 +235,11 @@ The floating pet can follow any AI coding agent: it bobs while the agent works, 
 Setup is manual and optional: PokeTokenBar does not install agent hooks or edit your agent settings. Enable the floating pet, leave **React to agent activity** on, and add the appropriate hook below.
 
 ```text
-poketokenbar://agent?state=<working|waiting|done|idle>[&label=<name>][&message=<text>]
+poketokenbar://agent?state=<working|waiting|done|idle>[&label=<name>][&message=<text>][&app=<bundle id>][&tty=<tty>]
 ```
 
 - `label` and `message` are optional, URL-encoded, and shown as plain text. `label` (up to 24 characters) names the agent so several can run at once, each with its own state. Without a label, all events belong to one agent.
+- `app` and `tty` are optional and say where the agent runs: the hosting app's bundle id (`$__CFBundleIdentifier` in a hook) and its terminal (e.g. `ttys002`). With them, clicking the pet while it shows a finished or waiting agent brings that window forward instead of opening the popover. Terminal and iTerm2 select the exact tab (macOS asks once for Automation permission); other apps are activated. Only an app that is already running is touched.
 - `working` falls back to idle after 10 minutes without news. `done` shows for about 6 seconds, then the pet walks home. `waiting` stays until that agent's next event or until you click the pet.
 - With several agents, a question comes first: the bubble shows the latest waiting agent and how many more are waiting, and the pet keeps bobbing while any agent works. A `done` shows its label for a few seconds, then the earlier bubble comes back. Clicking the pet clears every question, then prays when an egg is shown or opens the popover for a hatched Pokémon. Use right-click → Open to open it while showing an egg. Up to 8 labels are tracked.
 - A limit alert bubble takes priority. With Reduce Motion or Low Power Mode on, the pet shows bubbles without moving.
@@ -252,7 +253,15 @@ poketokenbar://agent?state=<working|waiting|done|idle>[&label=<name>][&message=<
 # Labels the agent with the project folder name, percent-encoded (perl ships with macOS).
 pgrep -xq PokeTokenBar || exit 0
 label=$(printf %s "${CLAUDE_PROJECT_DIR##*/}" | perl -pe 's/([^A-Za-z0-9._~-])/sprintf("%%%02X", ord $1)/ge')
-open -g "poketokenbar://agent?state=$1&label=$label" >/dev/null 2>&1
+# Where the agent runs, so clicking the pet opens that terminal tab (the hook itself runs detached).
+app="${__CFBundleIdentifier:-}"; tty=""; pid=$$
+for _ in 1 2 3 4 5 6; do
+    t=$(ps -o tty= -p "$pid" 2>/dev/null | tr -d ' ')
+    case "$t" in ''|'??') ;; *) tty="$t"; break ;; esac
+    pid=$(ps -o ppid= -p "$pid" 2>/dev/null | tr -d ' ')
+    [ -n "$pid" ] && [ "$pid" -gt 1 ] || break
+done
+open -g "poketokenbar://agent?state=$1&label=$label&app=$app&tty=$tty" >/dev/null 2>&1
 exit 0
 ```
 

@@ -236,10 +236,11 @@ Pi는 모델 여러 개를 세션 로그 하나로 흘려보낼 수 있습니다
 설정은 선택 사항이며 수동으로 진행합니다. PokeTokenBar가 에이전트 훅을 설치하거나 에이전트 설정 파일을 수정하지는 않습니다. 플로팅 펫과 **에이전트 활동에 반응**을 켜고 아래 훅을 추가하세요.
 
 ```text
-poketokenbar://agent?state=<working|waiting|done|idle>[&label=<name>][&message=<text>]
+poketokenbar://agent?state=<working|waiting|done|idle>[&label=<name>][&message=<text>][&app=<bundle id>][&tty=<tty>]
 ```
 
 - `label` 과 `message` 는 선택 사항입니다. URL 인코딩해서 넘기면 일반 텍스트로 표시됩니다. `label`(최대 24자)은 에이전트 이름이라, 여러 에이전트가 동시에 돌아도 각자 상태를 따로 가집니다. label 이 없으면 모든 이벤트가 하나의 에이전트로 처리됩니다.
+- `app` 과 `tty` 는 선택 사항으로, 에이전트가 실행 중인 곳을 알려 줍니다. 앱의 번들 ID(훅에서는 `$__CFBundleIdentifier`)와 터미널(예: `ttys002`)입니다. 이 값이 있으면 작업 완료·입력 대기 중인 펫을 클릭할 때 팝오버 대신 그 창을 앞으로 가져옵니다. 터미널과 iTerm2는 해당 탭까지 선택하고(처음 한 번 macOS가 자동화 권한을 물어요), 다른 앱은 활성화만 합니다. 이미 실행 중인 앱만 다룹니다.
 - `working` 은 10분 동안 새 소식이 없으면 평소 상태로 돌아갑니다. `done` 은 약 6초 표시된 뒤 펫이 원래 자리로 돌아가고, `waiting` 은 그 에이전트의 다음 이벤트가 오거나 펫을 클릭할 때까지 남습니다.
 - 에이전트가 여럿이면 질문이 먼저입니다. 말풍선에는 가장 최근에 기다리기 시작한 에이전트와 더 기다리는 수가 표시되고, 하나라도 일하는 동안 펫은 계속 들썩입니다. `done` 은 몇 초 동안 label 을 보여 준 뒤 이전 말풍선으로 돌아갑니다. 펫을 클릭하면 모든 질문이 지워지고, 알을 표시 중이면 기도하고 부화한 포켓몬이면 팝오버를 엽니다. 알을 표시 중일 때는 우클릭 → 열기로 팝오버를 여세요. label 은 최대 8개까지 추적합니다.
 - 한도 알림 말풍선이 우선합니다. 동작 줄이기나 저전력 모드에선 움직이지 않고 말풍선만 띄웁니다.
@@ -253,7 +254,15 @@ poketokenbar://agent?state=<working|waiting|done|idle>[&label=<name>][&message=<
 # Labels the agent with the project folder name, percent-encoded (perl ships with macOS).
 pgrep -xq PokeTokenBar || exit 0
 label=$(printf %s "${CLAUDE_PROJECT_DIR##*/}" | perl -pe 's/([^A-Za-z0-9._~-])/sprintf("%%%02X", ord $1)/ge')
-open -g "poketokenbar://agent?state=$1&label=$label" >/dev/null 2>&1
+# Where the agent runs, so clicking the pet opens that terminal tab (the hook itself runs detached).
+app="${__CFBundleIdentifier:-}"; tty=""; pid=$$
+for _ in 1 2 3 4 5 6; do
+    t=$(ps -o tty= -p "$pid" 2>/dev/null | tr -d ' ')
+    case "$t" in ''|'??') ;; *) tty="$t"; break ;; esac
+    pid=$(ps -o ppid= -p "$pid" 2>/dev/null | tr -d ' ')
+    [ -n "$pid" ] && [ "$pid" -gt 1 ] || break
+done
+open -g "poketokenbar://agent?state=$1&label=$label&app=$app&tty=$tty" >/dev/null 2>&1
 exit 0
 ```
 

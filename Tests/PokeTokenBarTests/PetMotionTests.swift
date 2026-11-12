@@ -1,3 +1,4 @@
+import AppKit
 import XCTest
 @testable import PokeTokenBar
 
@@ -44,11 +45,46 @@ final class PetMotionTests: XCTestCase {
         XCTAssertGreaterThanOrEqual(S.delayRange.lowerBound, 5, "idle motion must not become a busy loop")
     }
 
-    func testHopNeverRisesAboveTheEmptyRowsOverTheSprite() {
-        XCTAssertEqual(S.hopHeight(petSize: 100, visibleTop: 40), 12, "12% of the pet when there is room")
-        XCTAssertEqual(S.hopHeight(petSize: 100, visibleTop: 5), 5, "a tall sprite hops only as far as its headroom")
-        XCTAssertEqual(S.hopHeight(petSize: 100, visibleTop: 0), 0, "touching the top: no hop")
-        XCTAssertEqual(S.hopHeight(petSize: 100, visibleTop: nil), 0, "unknown headroom: no hop")
+    func testHopHeadroomCoversTheJumpAndItsStretch() {
+        for size in [48.0, 96, 384] as [CGFloat] {
+            let headroom = S.hopHeadroom(petSize: size)
+            // The jump plus the 4% take-off stretch must fit, or the top of the sprite clips.
+            XCTAssertGreaterThanOrEqual(headroom, S.hopHeight(petSize: size) + size * 0.04, "size \(size)")
+        }
+    }
+
+    // MARK: Walking
+
+    func testWalkStaysInsideTheRadiusAndTheScreen() {
+        let size: CGFloat = 96
+        let radius = S.wanderRadius(petSize: size)
+        var offset: CGFloat = 0
+        for i in 0..<200 {
+            offset = S.wanderTarget(current: offset, petSize: size, homeX: 500, visibleMinX: 0, visibleMaxX: 1440,
+                                    goRight: i % 3 != 0, unit: Double(i % 7) / 6)
+            XCTAssertLessThanOrEqual(abs(offset), radius + 0.001)
+        }
+        // Home near the right edge: never walks off screen.
+        for i in 0..<50 {
+            let t = S.wanderTarget(current: 0, petSize: size, homeX: 1440 - size - 10, visibleMinX: 0,
+                                   visibleMaxX: 1440, goRight: true, unit: Double(i) / 49)
+            XCTAssertLessThanOrEqual(1440 - size - 10 + t + size, 1440)
+        }
+    }
+
+    func testWalkTurnsAroundAtTheEdgeInsteadOfStandingStill() {
+        let size: CGFloat = 96
+        let radius = S.wanderRadius(petSize: size)
+        let t = S.wanderTarget(current: radius, petSize: size, homeX: 500, visibleMinX: 0, visibleMaxX: 1440,
+                               goRight: true, unit: 1)
+        XCTAssertLessThan(t, radius, "at the right limit a right step turns into a left step")
+    }
+
+    func testWalkFacesTheWayItGoes() {
+        XCTAssertTrue(PetIdleMotion.flipsForWalk(goesRight: true, facesBack: false), "front sprites face left")
+        XCTAssertFalse(PetIdleMotion.flipsForWalk(goesRight: false, facesBack: false))
+        XCTAssertFalse(PetIdleMotion.flipsForWalk(goesRight: true, facesBack: true), "back sprites face right")
+        XCTAssertTrue(PetIdleMotion.flipsForWalk(goesRight: false, facesBack: true))
     }
 
     // MARK: Persistence
@@ -108,5 +144,84 @@ final class PetMotionTests: XCTestCase {
         XCTAssertEqual(controller.idleMotions, [], "no idle motion on top of the agent bob")
         try send("idle")
         XCTAssertEqual(controller.idleMotions, PetMotion.allCases)
+    }
+
+    // MARK: Panel during hop and walk
+
+    private func makeController() throws -> (FloatingPetController, UsageStore, UserDefaults, () -> Void) {
+        let suite = "PetMotionPanel-\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        let file = FileManager.default.temporaryDirectory.appendingPathComponent("\(suite).json")
+        let store = UsageStore(providers: [], autoRefresh: false, defaults: defaults)
+        let companion = CompanionStore(fileURL: file, defaults: defaults)
+        let controller = FloatingPetController(store: store, companion: companion, defaults: defaults,
+                                               motionOverride: true)
+        controller.setDisplayAwake(false)
+        let visible = NSScreen.main?.visibleFrame ?? NSRect(x: 0, y: 0, width: 1440, height: 900)
+        defaults.set(Double(visible.midX), forKey: "floatingPetOriginX")
+        defaults.set(Double(visible.minY + 100), forKey: "floatingPetOriginY")
+        return (controller, store, defaults, {
+            defaults.removePersistentDomain(forName: suite)
+            try? FileManager.default.removeItem(at: file)
+        })
+    }
+
+    func testHopGrowsThePanelUpwardWithoutMovingThePet() throws {
+        let (controller, store, _, cleanUp) = try makeController()
+        defer { cleanUp() }
+        let size = CGFloat(store.floatingPetSize)
+        let panel = NSPanel(contentRect: NSRect(x: 300, y: 200, width: size, height: size),
+                            styleMask: [.borderless], backing: .buffered, defer: true)
+        let before = panel.frame
+        controller.playIdleMotion(.hop, panel: panel, goRight: true, unit: 0)
+        XCTAssertEqual(controller.hopHeadroom, PetMotionSchedule.hopHeadroom(petSize: size))
+        XCTAssertEqual(panel.frame.height, size + controller.hopHeadroom, "room above the sprite for the jump")
+        XCTAssertNotEqual(panel.frame, before)
+        XCTAssertEqual(panel.frame.width, size)
+    }
+
+    /// The trigger branch of the persistence guard: frames while walking must not become home,
+    /// and a drag during a walk must become home with the offset cleared.
+    func testWalkFramesNeverOverwriteHomeButADragDoes() throws {
+        let (controller, store, defaults, cleanUp) = try makeController()
+        defer { cleanUp() }
+        let size = CGFloat(store.floatingPetSize)
+        let homeX = defaults.double(forKey: "floatingPetOriginX")
+        let homeY = defaults.double(forKey: "floatingPetOriginY")
+        let panel = NSPanel(contentRect: NSRect(x: homeX, y: homeY, width: size, height: size),
+                            styleMask: [.borderless], backing: .buffered, defer: true)
+
+        controller.playIdleMotion(.walk, panel: panel, goRight: true, unit: 1)
+        XCTAssertTrue(controller.isWalking)
+        XCTAssertNotEqual(controller.wanderOffsetX, 0)
+        controller.panelDidMove(panelOrigin: NSPoint(x: homeX + 37, y: homeY), userDragging: false)
+        XCTAssertEqual(defaults.double(forKey: "floatingPetOriginX"), homeX, "a walk frame is not home")
+
+        controller.panelDidMove(panelOrigin: NSPoint(x: homeX + 200, y: homeY), userDragging: true)
+        XCTAssertFalse(controller.isWalking)
+        XCTAssertEqual(controller.wanderOffsetX, 0)
+        XCTAssertEqual(defaults.double(forKey: "floatingPetOriginX"), homeX + 200, "the drop spot is the new home")
+    }
+
+    /// After a walk ends, a settings-driven reframe (offset still applied) must save the real home.
+    func testReframeAfterAWalkSavesTheRealHome() throws {
+        let (controller, store, defaults, cleanUp) = try makeController()
+        defer { cleanUp() }
+        let size = CGFloat(store.floatingPetSize)
+        let homeX = defaults.double(forKey: "floatingPetOriginX")
+        let homeY = defaults.double(forKey: "floatingPetOriginY")
+        let panel = NSPanel(contentRect: NSRect(x: homeX, y: homeY, width: size, height: size),
+                            styleMask: [.borderless], backing: .buffered, defer: true)
+        controller.playIdleMotion(.walk, panel: panel, goRight: false, unit: 0.5)
+        let offset = controller.wanderOffsetX
+        controller.panelDidMove(panelOrigin: NSPoint(x: homeX + offset, y: homeY), userDragging: true)
+        // A drag already cleared the offset; replay a walk and simulate its end + a reframe.
+        controller.playIdleMotion(.walk, panel: panel, goRight: true, unit: 0.5)
+        let walked = controller.wanderOffsetX
+        XCTAssertNotEqual(walked, 0)
+        let home = defaults.double(forKey: "floatingPetOriginX")
+        controller.walkDidFinish()
+        controller.panelDidMove(panelOrigin: NSPoint(x: home + walked, y: homeY), userDragging: false)
+        XCTAssertEqual(defaults.double(forKey: "floatingPetOriginX"), home, accuracy: 0.001)
     }
 }

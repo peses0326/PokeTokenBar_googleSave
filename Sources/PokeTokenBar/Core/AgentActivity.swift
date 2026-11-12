@@ -9,7 +9,32 @@ enum AgentActivity: Equatable, Sendable {
     case done(message: String?)
 }
 
-/// One parsed `poketokenbar://agent?state=<working|waiting|done|idle>[&message=<text>][&label=<name>]` URL.
+/// Where an agent runs, so a click on the pet can bring that window forward. Both fields come
+/// from an untrusted URL: they are only ever matched against running apps and open terminal tabs.
+struct AgentSource: Equatable, Sendable {
+    /// Bundle id of the app hosting the agent (a hook's `$__CFBundleIdentifier`).
+    var app: String
+    /// Controlling terminal of the agent, e.g. `/dev/ttys002`; nil for GUI agents.
+    var tty: String?
+
+    init?(app: String?, tty: String?) {
+        guard let app, app.count <= 128,
+              app.range(of: #"^[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)+$"#, options: .regularExpression) != nil
+        else { return nil }
+        self.app = app
+        self.tty = Self.sanitizedTTY(tty)
+    }
+
+    /// `ttys002` and `/dev/ttys002` both become `/dev/ttys002`; anything else (`??`, paths) is dropped.
+    static func sanitizedTTY(_ raw: String?) -> String? {
+        guard var tty = raw?.trimmingCharacters(in: .whitespaces), !tty.isEmpty else { return nil }
+        if !tty.hasPrefix("/dev/") { tty = "/dev/" + tty }
+        guard tty.range(of: #"^/dev/ttys?[0-9]{1,4}$"#, options: .regularExpression) != nil else { return nil }
+        return tty
+    }
+}
+
+/// One parsed `poketokenbar://agent?state=<working|waiting|done|idle>[&message=<text>][&label=<name>][&app=<bundle id>][&tty=<tty>]` URL.
 struct AgentActivityEvent: Equatable, Sendable {
     static let scheme = "poketokenbar"
     /// Schemes this build answers: the default plus any it registers in `CFBundleURLTypes`, so a build
@@ -33,6 +58,8 @@ struct AgentActivityEvent: Equatable, Sendable {
     let activity: AgentActivity
     /// Nil is the one unlabeled agent, so URLs without a label behave as before.
     let label: String?
+    /// Nil when the hook did not say where the agent runs.
+    let source: AgentSource?
 
     /// Nil for any other scheme, host or state — unknown input is ignored, never an error.
     init?(url: URL, acceptedSchemes: Set<String> = Self.acceptedSchemes) {
@@ -43,6 +70,8 @@ struct AgentActivityEvent: Equatable, Sendable {
         else { return nil }
         let message = Self.sanitizedMessage(items.first(where: { $0.name == "message" })?.value)
         label = Self.sanitizedLabel(items.first(where: { $0.name == "label" })?.value)
+        source = AgentSource(app: items.first(where: { $0.name == "app" })?.value,
+                             tty: items.first(where: { $0.name == "tty" })?.value)
         switch state {
         case "idle": activity = .idle
         case "working": activity = .working
@@ -87,6 +116,7 @@ struct AgentActivitySummary: Equatable, Sendable {
     struct Note: Equatable, Sendable {
         var label: String?
         var message: String?
+        var source: AgentSource?
     }
 
     /// The latest `done`: a transient overlay over everything else.
@@ -113,6 +143,7 @@ struct AgentActivityTracker: Equatable, Sendable {
         var deadline: Date?
         /// Event order; larger is more recent.
         var sequence: Int
+        var source: AgentSource?
     }
 
     /// Keyed by sanitized label; `""` is the unlabeled agent.
@@ -124,7 +155,7 @@ struct AgentActivityTracker: Equatable, Sendable {
 
     var summary: AgentActivitySummary {
         func note(_ key: String, _ message: String?) -> AgentActivitySummary.Note {
-            .init(label: key.isEmpty ? nil : key, message: message)
+            .init(label: key.isEmpty ? nil : key, message: message, source: agents[key]?.source)
         }
         var summary = AgentActivitySummary()
         var waiting: [(key: String, message: String?, sequence: Int)] = []
@@ -171,7 +202,9 @@ struct AgentActivityTracker: Equatable, Sendable {
             agents[oldest] = nil
         }
         sequence += 1
-        agents[key] = Entry(activity: event.activity, deadline: deadline, sequence: sequence)
+        // A hook that stops sending its source keeps the last one it sent.
+        agents[key] = Entry(activity: event.activity, deadline: deadline, sequence: sequence,
+                            source: event.source ?? agents[key]?.source)
     }
 
     /// Returns whether any agent changed.

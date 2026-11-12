@@ -403,6 +403,27 @@ struct SettingsView: View {
         }
     }
 
+    /// A 1…5 slider (calm → lively) for an idle-motion level.
+    private func motionLevelRow(_ label: String, _ level: Binding<Int>) -> some View {
+        HStack(spacing: 8) {
+            Text(label).font(.callout).lineLimit(1).frame(width: 76, alignment: .leading)
+            Slider(value: Binding(get: { Double(level.wrappedValue) },
+                                  set: { level.wrappedValue = PetMotionSchedule.clampedLevel(Int($0.rounded())) }),
+                   in: Double(PetMotionSchedule.levels.lowerBound)...Double(PetMotionSchedule.levels.upperBound),
+                   step: 1) {
+                Text(label)
+            } minimumValueLabel: {
+                Text(l.petMotionLevelCalm).font(.caption2).foregroundStyle(.secondary)
+            } maximumValueLabel: {
+                Text(l.petMotionLevelLively).font(.caption2).foregroundStyle(.secondary)
+            }
+            .labelsHidden()   // the row's own Text is the visible label
+            .accessibilityLabel(label)
+            Text("\(level.wrappedValue)")
+                .font(.caption).monospacedDigit().frame(width: 16, alignment: .trailing)
+        }
+    }
+
     /// One checkbox per idle motion, indented under the auto-motion switch.
     private func petMotionChecklist(_ store: UsageStore) -> some View {
         VStack(alignment: .leading, spacing: 4) {
@@ -415,6 +436,13 @@ struct SettingsView: View {
                 .toggleStyle(.checkbox)
                 .font(.callout)
             }
+            motionLevelRow(l.petMotionFrequencyLabel, Binding(
+                get: { store.floatingPetMotionFrequency }, set: { store.floatingPetMotionFrequency = $0 }))
+                .padding(.top, 4)
+            // Radius only shapes walks; keep it visible but inert while walking is unchecked.
+            motionLevelRow(l.petMotionRadiusLabel, Binding(
+                get: { store.floatingPetMotionRadius }, set: { store.floatingPetMotionRadius = $0 }))
+                .disabled(!store.floatingPetMotions.contains(.walk))
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.leading, 28)

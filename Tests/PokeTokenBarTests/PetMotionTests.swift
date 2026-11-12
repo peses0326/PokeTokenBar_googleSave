@@ -39,10 +39,47 @@ final class PetMotionTests: XCTestCase {
     }
 
     func testDelayStaysInsideTheRangeSoTheLoopMostlySleeps() {
-        XCTAssertEqual(S.nextDelay(unit: 0), S.delayRange.lowerBound)
-        XCTAssertEqual(S.nextDelay(unit: 1), S.delayRange.upperBound)
-        XCTAssertEqual(S.nextDelay(unit: 5), S.delayRange.upperBound, "clamped")
-        XCTAssertGreaterThanOrEqual(S.delayRange.lowerBound, 5, "idle motion must not become a busy loop")
+        XCTAssertEqual(S.nextDelay(unit: 0), S.delayRange().lowerBound)
+        XCTAssertEqual(S.nextDelay(unit: 1), S.delayRange().upperBound)
+        XCTAssertEqual(S.nextDelay(unit: 5), S.delayRange().upperBound, "clamped")
+        for level in S.levels {
+            XCTAssertGreaterThanOrEqual(S.delayRange(level: level).lowerBound, 1,
+                                        "level \(level): idle motion must not become a busy loop")
+        }
+    }
+
+    // MARK: Levels
+
+    func testLevelTwoKeepsTheOriginalPaceAndRange() {
+        XCTAssertEqual(S.defaultLevel, 2)
+        XCTAssertEqual(S.delayRange(level: 2), 8...20)
+        XCTAssertEqual(S.wanderRadius(petSize: 96, level: 2), 144)
+    }
+
+    func testHigherLevelsAreStrictlyLivelier() {
+        for level in S.levels.dropLast() {
+            XCTAssertGreaterThan(S.delayRange(level: level).upperBound, S.delayRange(level: level + 1).upperBound,
+                                 "frequency \(level + 1) waits less")
+            XCTAssertLessThan(S.radiusFactor(level: level), S.radiusFactor(level: level + 1), "range \(level + 1) is wider")
+        }
+        XCTAssertEqual(S.clampedLevel(0), 1)
+        XCTAssertEqual(S.clampedLevel(9), 5)
+    }
+
+    func testWideRangeWalksStayInsideTheirRadius() {
+        let size: CGFloat = 96
+        for level in S.levels {
+            let radius = S.wanderRadius(petSize: size, level: level)
+            var offset: CGFloat = 0
+            for i in 0..<100 {
+                offset = S.wanderTarget(current: offset, petSize: size, homeX: 1200, visibleMinX: 0, visibleMaxX: 3000,
+                                        goRight: i % 2 == 0, unit: Double(i % 5) / 4, level: level)
+                XCTAssertLessThanOrEqual(abs(offset), radius + 0.001, "level \(level)")
+            }
+        }
+        XCTAssertGreaterThan(S.wanderTarget(current: 0, petSize: size, homeX: 1200, visibleMinX: 0, visibleMaxX: 3000,
+                                            goRight: true, unit: 1, level: 5), size * 2,
+                             "a lively range takes long strides")
     }
 
     func testHopHeadroomCoversTheJumpAndItsStretch() {
@@ -107,6 +144,17 @@ final class PetMotionTests: XCTestCase {
         store.floatingPetMotions = []
         XCTAssertEqual(UsageStore(providers: [], autoRefresh: false, defaults: defaults).floatingPetMotions, [],
                        "clearing every box must not fall back to all")
+
+        XCTAssertEqual(store.floatingPetMotionFrequency, 2)
+        XCTAssertEqual(store.floatingPetMotionRadius, 2)
+        store.floatingPetMotionFrequency = 5
+        store.floatingPetMotionRadius = 4
+        let levels = UsageStore(providers: [], autoRefresh: false, defaults: defaults)
+        XCTAssertEqual(levels.floatingPetMotionFrequency, 5)
+        XCTAssertEqual(levels.floatingPetMotionRadius, 4)
+        defaults.set(42, forKey: "floatingPetMotionFrequency")
+        XCTAssertEqual(UsageStore(providers: [], autoRefresh: false, defaults: defaults).floatingPetMotionFrequency, 5,
+                       "a hand-edited out-of-range level is clamped")
     }
 
     func testUnknownStoredMotionsAreDropped() {
@@ -223,5 +271,20 @@ final class PetMotionTests: XCTestCase {
         controller.walkDidFinish()
         controller.panelDidMove(panelOrigin: NSPoint(x: home + walked, y: homeY), userDragging: false)
         XCTAssertEqual(defaults.double(forKey: "floatingPetOriginX"), home, accuracy: 0.001)
+    }
+
+    /// The range setting reaches the walk the controller actually starts.
+    func testRangeSettingWidensTheControllersWalk() throws {
+        let (controller, store, defaults, cleanUp) = try makeController()
+        defer { cleanUp() }
+        let size = CGFloat(store.floatingPetSize)
+        let panel = NSPanel(contentRect: NSRect(x: defaults.double(forKey: "floatingPetOriginX"),
+                                                y: defaults.double(forKey: "floatingPetOriginY"),
+                                                width: size, height: size),
+                            styleMask: [.borderless], backing: .buffered, defer: true)
+        store.floatingPetMotionRadius = 5
+        controller.playIdleMotion(.walk, panel: panel, goRight: true, unit: 1)
+        XCTAssertGreaterThan(abs(controller.wanderOffsetX), PetMotionSchedule.wanderRadius(petSize: size, level: 2),
+                             "level 5 strides past the level-2 radius")
     }
 }

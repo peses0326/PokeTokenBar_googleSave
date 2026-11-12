@@ -204,6 +204,14 @@ final class UsageStore {
     var floatingPetMotions: Set<PetMotion> {
         didSet { defaults.set(PetMotion.encode(floatingPetMotions), forKey: "floatingPetMotions") }
     }
+    /// How often idle motions play, 1 (calm) … 5 (lively). Default 2.
+    var floatingPetMotionFrequency: Int {
+        didSet { defaults.set(floatingPetMotionFrequency, forKey: "floatingPetMotionFrequency") }
+    }
+    /// How far a walk may stray from home, 1 … 5. Default 2.
+    var floatingPetMotionRadius: Int {
+        didSet { defaults.set(floatingPetMotionRadius, forKey: "floatingPetMotionRadius") }
+    }
     var disableKeychainAccess: Bool {
         didSet {
             defaults.set(disableKeychainAccess, forKey: "disableKeychainAccess")   // 저장 누락이던 기존 버그 — 재시작 후 풀렸음
@@ -980,6 +988,10 @@ final class UsageStore {
         floatingPetAgentActivity = d.object(forKey: "floatingPetAgentActivity") as? Bool ?? true
         floatingPetAutoMotion = d.object(forKey: "floatingPetAutoMotion") as? Bool ?? true
         floatingPetMotions = PetMotion.decode(d.stringArray(forKey: "floatingPetMotions"))
+        floatingPetMotionFrequency = PetMotionSchedule.clampedLevel(
+            d.object(forKey: "floatingPetMotionFrequency") as? Int ?? PetMotionSchedule.defaultLevel)
+        floatingPetMotionRadius = PetMotionSchedule.clampedLevel(
+            d.object(forKey: "floatingPetMotionRadius") as? Int ?? PetMotionSchedule.defaultLevel)
         // 기본 powerSaver — 이 설정이 생기기 전의 고정 캡(0.4s)과 같은 프레임 레이트라, 기존
         // 사용자의 배터리 프로파일은 그대로다. 더 부드러운 쪽은 opt-in(실측 idle CPU 1.8%/5.1%).
         animationQuality = AnimationQuality(rawValue: d.string(forKey: "animationQuality") ?? "") ?? .powerSaver

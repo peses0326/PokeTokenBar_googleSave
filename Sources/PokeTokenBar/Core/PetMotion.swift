@@ -31,9 +31,34 @@ enum PetMotion: String, CaseIterable, Identifiable, Sendable {
 
 /// Pure scheduling rules for the idle motions, kept out of SwiftUI so tests can pin them.
 enum PetMotionSchedule {
-    /// Pause between two idle motions. Long enough that the loop is mostly asleep (a wakeup every
-    /// 8–20 s), short enough that the pet visibly lives.
-    static let delayRange: ClosedRange<Double> = 8...20
+    /// Settings levels for frequency and radius: 1 calm … 5 lively. 2 is the original pace.
+    static let levels: ClosedRange<Int> = 1...5
+    static let defaultLevel = 2
+
+    static func clampedLevel(_ level: Int) -> Int { min(max(level, levels.lowerBound), levels.upperBound) }
+
+    /// Pause between two idle motions per frequency level. Even the liveliest level sleeps over a
+    /// second between motions, so the loop never becomes a busy loop.
+    static func delayRange(level: Int = defaultLevel) -> ClosedRange<Double> {
+        switch clampedLevel(level) {
+        case 1: return 15...35
+        case 2: return 8...20
+        case 3: return 5...12
+        case 4: return 3...7
+        default: return 1.5...4
+        }
+    }
+
+    /// Wander radius in pet widths per radius level.
+    static func radiusFactor(level: Int = defaultLevel) -> CGFloat {
+        switch clampedLevel(level) {
+        case 1: return 0.75
+        case 2: return 1.5
+        case 3: return 2.5
+        case 4: return 4
+        default: return 6
+        }
+    }
 
     /// Motions to cycle through, or empty when nothing should run. Agent bobbing owns the sprite,
     /// and motion stays off for Reduce Motion / Low Power (`motionAllowed`).
@@ -43,9 +68,10 @@ enum PetMotionSchedule {
         return PetMotion.allCases.filter(enabled.contains)
     }
 
-    static func nextDelay(unit: Double) -> Double {
+    static func nextDelay(unit: Double, level: Int = defaultLevel) -> Double {
+        let range = delayRange(level: level)
         let u = min(max(unit, 0), 1)
-        return delayRange.lowerBound + (delayRange.upperBound - delayRange.lowerBound) * u
+        return range.lowerBound + (range.upperBound - range.lowerBound) * u
     }
 
     /// A random enabled motion, avoiding an immediate repeat when there is a choice.
@@ -61,27 +87,34 @@ enum PetMotionSchedule {
     static func hopHeight(petSize: CGFloat) -> CGFloat { petSize * 0.18 }
 
     /// How far (pt) the pet may stray from the home the user dragged it to.
-    static func wanderRadius(petSize: CGFloat) -> CGFloat { petSize * 1.5 }
+    static func wanderRadius(petSize: CGFloat, level: Int = defaultLevel) -> CGFloat {
+        petSize * radiusFactor(level: level)
+    }
 
-    /// Next horizontal offset from home for a walk. Steps 0.4–1.0 pet widths in the preferred
+    /// Steps grow with the radius, so a wide range is actually explored rather than inched across.
+    static func stepScale(level: Int) -> CGFloat { radiusFactor(level: level) / radiusFactor(level: defaultLevel) }
+
+    /// Next horizontal offset from home for a walk. Steps 0.4–1.0 pet widths (× `stepScale`) in the preferred
     /// direction, turns around when that would leave the radius or the screen, and always ends
     /// inside both. `homeX` is the pet's left edge at home.
     static func wanderTarget(current: CGFloat, petSize: CGFloat, homeX: CGFloat,
                              visibleMinX: CGFloat, visibleMaxX: CGFloat,
-                             goRight: Bool, unit: Double) -> CGFloat {
-        let radius = wanderRadius(petSize: petSize)
+                             goRight: Bool, unit: Double, level: Int = defaultLevel) -> CGFloat {
+        let radius = wanderRadius(petSize: petSize, level: level)
         let lower = max(-radius, visibleMinX - homeX)
         let upper = min(radius, visibleMaxX - petSize - homeX)
         guard lower < upper else { return 0 }   // no room: stay home
-        let step = petSize * (0.4 + 0.6 * CGFloat(min(max(unit, 0), 1)))
+        let step = petSize * (0.4 + 0.6 * CGFloat(min(max(unit, 0), 1))) * stepScale(level: level)
         var target = current + (goRight ? step : -step)
         if target > upper || target < lower { target = current + (goRight ? -step : step) }
         return min(max(target, lower), upper)
     }
 
-    /// Walk time for a distance: about 0.8 pet widths a second, never a blink.
-    static func walkDuration(distance: CGFloat, petSize: CGFloat) -> Double {
-        max(0.6, Double(abs(distance) / max(petSize * 0.8, 1)))
+    /// Walk time for a distance: about 0.8 pet widths a second at level 2, a bit quicker on wider
+    /// levels so a long walk does not crawl; never a blink.
+    static func walkDuration(distance: CGFloat, petSize: CGFloat, level: Int = defaultLevel) -> Double {
+        let speed = petSize * 0.8 * stepScale(level: level).squareRoot()
+        return max(0.6, Double(abs(distance) / max(speed, 1)))
     }
 }
 

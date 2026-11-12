@@ -32,6 +32,8 @@ final class FloatingPetController: NSObject, NSWindowDelegate {
     private var motionTimer: Timer?
     private var lastMotion: PetMotion?
     private var motionSeq = 0
+    /// Frequency level the pending timer was scheduled with; a change reschedules at once.
+    private var scheduledFrequency: Int?
     /// Extra height above the sprite while a hop plays (panel grows upward, the pet stays put).
     private(set) var hopHeadroom: CGFloat = 0
     /// Where a walk left the pet, relative to the saved home. Never persisted: home stays where
@@ -351,6 +353,7 @@ final class FloatingPetController: NSObject, NSWindowDelegate {
             _ = store.floatingPetAgentActivity
             _ = store.floatingPetAutoMotion
             _ = store.floatingPetMotions
+            _ = store.floatingPetMotionFrequency
             _ = store.currentBubbleAlert
             _ = store.todayTotalTokens
             _ = store.highestLimitUtilization
@@ -409,14 +412,15 @@ final class FloatingPetController: NSObject, NSWindowDelegate {
         if agentModel.idleMotions != next { agentModel.idleMotions = next }
         if next.isEmpty || panel?.isVisible != true {
             stopIdleMotions()
-        } else if motionTimer == nil {
+        } else if motionTimer == nil || scheduledFrequency != store.floatingPetMotionFrequency {
             scheduleNextMotion()
         }
     }
 
     private func scheduleNextMotion() {
         motionTimer?.invalidate()
-        let delay = PetMotionSchedule.nextDelay(unit: .random(in: 0...1))
+        scheduledFrequency = store.floatingPetMotionFrequency
+        let delay = PetMotionSchedule.nextDelay(unit: .random(in: 0...1), level: store.floatingPetMotionFrequency)
         let timer = Timer(timeInterval: delay, repeats: false) { [weak self] _ in
             MainActor.assumeIsolated { self?.motionTimerFired() }
         }
@@ -475,11 +479,13 @@ final class FloatingPetController: NSObject, NSWindowDelegate {
             guard let visible = screen?.visibleFrame else { return }
             let target = PetMotionSchedule.wanderTarget(
                 current: wanderOffsetX, petSize: petSize, homeX: home.minX,
-                visibleMinX: visible.minX, visibleMaxX: visible.maxX, goRight: goRight, unit: unit)
+                visibleMinX: visible.minX, visibleMaxX: visible.maxX, goRight: goRight, unit: unit,
+                level: store.floatingPetMotionRadius)
             let distance = target - wanderOffsetX
             guard abs(distance) >= 1 else { return }
             cue.goesRight = distance > 0
-            cue.duration = PetMotionSchedule.walkDuration(distance: distance, petSize: petSize)
+            cue.duration = PetMotionSchedule.walkDuration(distance: distance, petSize: petSize,
+                                                          level: store.floatingPetMotionRadius)
             wanderOffsetX = target
             isWalking = true
             let seq = motionSeq

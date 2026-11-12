@@ -1326,6 +1326,18 @@ read_when:
   height). Measure a new cap against every canvas in the dex, not the cached few; the guard is
   `testWideSpriteFillsMenuBarHeightUntilTheWidthCap` with the real Swanna and Tynamo canvases.
 
+- **A motion inside a sprite-tall panel needs room the panel gives it, not room the sprite seems to
+  have.** The first floating-pet hop capped its height at `SpriteVisibleTop`, and the top of the sprite
+  still clipped. That value scans only the central 35–65% band (it anchors bubble tails), so crowns,
+  ears and fins at the sides reach higher than it says, and the 4% take-off stretch was not counted
+  at all. The tests passed because they pinned the clamp arithmetic, not "the transformed sprite fits
+  the panel". Now the controller grows the panel upward by `PetMotionSchedule.hopHeadroom` (25% of the
+  pet) for the jump and shrinks it after; the guards are `testHopHeadroomCoversTheJumpAndItsStretch`
+  and `testHopGrowsThePanelUpwardWithoutMovingThePet`. Sweep: wiggle/sway rotate ±7° from the feet
+  and the agent bob widens 3% — these clip only for sprites whose pixels touch the side edges, which
+  Gen-V canvases (cropped with margins) rarely do; a horizontal move (walk) moves the panel, never the
+  sprite inside it.
+
 ## 프로세스 제어·업데이트
 
 - **"나중에"는 이 버전을 다시 안 보여 주는 스킵이지, 다음에 또 물어보기가 아니다.** `skipCurrent()` 가

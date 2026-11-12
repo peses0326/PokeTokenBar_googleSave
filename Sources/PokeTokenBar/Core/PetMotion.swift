@@ -3,8 +3,10 @@ import Foundation
 /// One-shot idle motions the floating pet plays now and then on its own (Settings → Floating Pet →
 /// Auto motion). Each is a short transform of the existing sprite — no extra art is fetched.
 enum PetMotion: String, CaseIterable, Identifiable, Sendable {
-    /// Small jump, capped by the empty space above the sprite so it never clips the panel.
+    /// Small jump. The panel grows upward for the jump, so the sprite never clips.
     case hop
+    /// Walks a short way left or right around its home spot, facing the way it goes.
+    case walk
     /// Faces the other way for a moment, then turns back.
     case lookAround
     /// Quick side-to-side shake.
@@ -53,11 +55,40 @@ enum PetMotionSchedule {
         return pool[abs(index) % pool.count]
     }
 
-    /// Hop height (pt): 12% of the pet, but never more than the transparent rows above the
-    /// sprite, because the panel is exactly sprite-tall and would clip a taller jump.
-    static func hopHeight(petSize: CGFloat, visibleTop: CGFloat?) -> CGFloat {
-        let wanted = petSize * 0.12
-        guard let visibleTop else { return 0 }
-        return max(0, min(wanted, visibleTop))
+    /// Extra panel height (pt) above the sprite while a hop plays. The jump itself is
+    /// `hopHeight`; the rest covers the take-off stretch.
+    static func hopHeadroom(petSize: CGFloat) -> CGFloat { (petSize * 0.25).rounded(.up) }
+    static func hopHeight(petSize: CGFloat) -> CGFloat { petSize * 0.18 }
+
+    /// How far (pt) the pet may stray from the home the user dragged it to.
+    static func wanderRadius(petSize: CGFloat) -> CGFloat { petSize * 1.5 }
+
+    /// Next horizontal offset from home for a walk. Steps 0.4–1.0 pet widths in the preferred
+    /// direction, turns around when that would leave the radius or the screen, and always ends
+    /// inside both. `homeX` is the pet's left edge at home.
+    static func wanderTarget(current: CGFloat, petSize: CGFloat, homeX: CGFloat,
+                             visibleMinX: CGFloat, visibleMaxX: CGFloat,
+                             goRight: Bool, unit: Double) -> CGFloat {
+        let radius = wanderRadius(petSize: petSize)
+        let lower = max(-radius, visibleMinX - homeX)
+        let upper = min(radius, visibleMaxX - petSize - homeX)
+        guard lower < upper else { return 0 }   // no room: stay home
+        let step = petSize * (0.4 + 0.6 * CGFloat(min(max(unit, 0), 1)))
+        var target = current + (goRight ? step : -step)
+        if target > upper || target < lower { target = current + (goRight ? -step : step) }
+        return min(max(target, lower), upper)
     }
+
+    /// Walk time for a distance: about 0.8 pet widths a second, never a blink.
+    static func walkDuration(distance: CGFloat, petSize: CGFloat) -> Double {
+        max(0.6, Double(abs(distance) / max(petSize * 0.8, 1)))
+    }
+}
+
+/// One idle motion the controller asks the pet view to play. `seq` makes a repeat a new cue.
+struct PetMotionCue: Equatable, Sendable {
+    var seq: Int
+    var motion: PetMotion
+    var goesRight = false
+    var duration: Double = 0
 }

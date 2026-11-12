@@ -48,6 +48,7 @@ cat > "$APP/Contents/Info.plist" <<PLIST
     <key>CFBundleIconFile</key><string>AppIcon</string>
     <key>LSUIElement</key><true/>
     <key>NSHighResolutionCapable</key><true/>
+    <key>NSAppleEventsUsageDescription</key><string>Opens the terminal tab of a coding agent when you click the pet.</string>
     <key>CFBundleURLTypes</key>
     <array>
         <dict>

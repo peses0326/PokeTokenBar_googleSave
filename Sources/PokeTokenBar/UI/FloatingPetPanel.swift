@@ -28,6 +28,17 @@ final class FloatingPetController: NSObject, NSWindowDelegate {
     private var awayPetOrigin: NSPoint?
     /// Bumped on every run/return animation so a stale completion handler does nothing.
     private var runGeneration = 0
+    /// Fires the next idle motion; nil while no motion may run.
+    private var motionTimer: Timer?
+    private var lastMotion: PetMotion?
+    private var motionSeq = 0
+    /// Extra height above the sprite while a hop plays (panel grows upward, the pet stays put).
+    private(set) var hopHeadroom: CGFloat = 0
+    /// Where a walk left the pet, relative to the saved home. Never persisted: home stays where
+    /// the user dragged it, and a drag, a run or hiding brings the offset back to 0.
+    private(set) var wanderOffsetX: CGFloat = 0
+    /// True while the panel slides for a walk, so its frames are not saved as home.
+    private(set) var isWalking = false
 
     private static let originXKey = "floatingPetOriginX"
     private static let originYKey = "floatingPetOriginY"
@@ -396,6 +407,91 @@ final class FloatingPetController: NSObject, NSWindowDelegate {
             autoMotion: store.floatingPetAutoMotion, enabled: store.floatingPetMotions,
             motionAllowed: motionAllowed, bobbing: agentModel.bobs)
         if agentModel.idleMotions != next { agentModel.idleMotions = next }
+        if next.isEmpty || panel?.isVisible != true {
+            stopIdleMotions()
+        } else if motionTimer == nil {
+            scheduleNextMotion()
+        }
+    }
+
+    private func scheduleNextMotion() {
+        motionTimer?.invalidate()
+        let delay = PetMotionSchedule.nextDelay(unit: .random(in: 0...1))
+        let timer = Timer(timeInterval: delay, repeats: false) { [weak self] _ in
+            MainActor.assumeIsolated { self?.motionTimerFired() }
+        }
+        timer.tolerance = 1
+        RunLoop.main.add(timer, forMode: .common)
+        motionTimer = timer
+    }
+
+    /// The pet arrived; from here a reframe at the offset is home + offset, not a new home.
+    func walkDidFinish() { isWalking = false }
+
+    /// Cancels the schedule and any motion in flight; the pet settles where it stands.
+    private func stopIdleMotions() {
+        motionTimer?.invalidate()
+        motionTimer = nil
+        agentModel.motionCue = nil
+        isWalking = false
+        hopHeadroom = 0
+    }
+
+    private func motionTimerFired() {
+        motionTimer = nil
+        defer { if !agentModel.idleMotions.isEmpty, panel?.isVisible == true { scheduleNextMotion() } }
+        guard let p = panel, p.isVisible, runPhase == .home, !showingBubble, !isWalking,
+              (p.contentView as? PetHostingView)?.isDragging != true,
+              let motion = PetMotionSchedule.pick(from: agentModel.idleMotions, previous: lastMotion,
+                                                  index: .random(in: 0..<64))
+        else { return }
+        lastMotion = motion
+        playIdleMotion(motion, panel: p, goRight: .random(), unit: .random(in: 0...1))
+    }
+
+    /// Starts one idle motion. Hop and walk change the panel first; the view animates the sprite.
+    func playIdleMotion(_ motion: PetMotion, panel p: NSPanel, goRight: Bool, unit: Double) {
+        let petSize = CGFloat(store.floatingPetSize)
+        motionSeq += 1
+        var cue = PetMotionCue(seq: motionSeq, motion: motion)
+        switch motion {
+        case .hop:
+            hopHeadroom = PetMotionSchedule.hopHeadroom(petSize: petSize)
+            p.setFrame(targetFrame(petSize: petSize, showingBubble: false), display: true)
+            let seq = motionSeq
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.75) { [weak self] in
+                MainActor.assumeIsolated {
+                    guard let self, self.motionSeq == seq, self.hopHeadroom > 0 else { return }
+                    self.hopHeadroom = 0
+                    if self.runPhase == .home, let p = self.panel, p.isVisible {
+                        p.setFrame(self.targetFrame(petSize: petSize, showingBubble: self.showingBubble),
+                                   display: true)
+                    }
+                }
+            }
+        case .walk:
+            let home = targetFrame(petSize: petSize, showingBubble: false, includeWander: false)
+            let screen = NSScreen.screens.first { $0.visibleFrame.intersects(home) } ?? NSScreen.main
+            guard let visible = screen?.visibleFrame else { return }
+            let target = PetMotionSchedule.wanderTarget(
+                current: wanderOffsetX, petSize: petSize, homeX: home.minX,
+                visibleMinX: visible.minX, visibleMaxX: visible.maxX, goRight: goRight, unit: unit)
+            let distance = target - wanderOffsetX
+            guard abs(distance) >= 1 else { return }
+            cue.goesRight = distance > 0
+            cue.duration = PetMotionSchedule.walkDuration(distance: distance, petSize: petSize)
+            wanderOffsetX = target
+            isWalking = true
+            let seq = motionSeq
+            animate(p, to: targetFrame(petSize: petSize, showingBubble: false),
+                    duration: cue.duration, timing: .linear) { [weak self] in
+                guard let self, self.motionSeq == seq else { return }
+                self.walkDidFinish()
+            }
+        case .lookAround, .wiggle, .bounce, .sway:
+            break
+        }
+        agentModel.motionCue = cue
     }
 
     // MARK: Agent activity
@@ -473,6 +569,8 @@ final class FloatingPetController: NSObject, NSWindowDelegate {
         let petSize = CGFloat(store.floatingPetSize)
         let size = Self.panelSize(petSize: petSize, showingBubble: true)
         let origin = Self.runPanelOrigin(cursor: cursor, panelSize: size, visibleFrame: visibleFrame)
+        stopIdleMotions()
+        wanderOffsetX = 0   // the way back ends at the real home
         runPhase = .away
         awayPetOrigin = Self.petOrigin(panelOrigin: origin, petSize: petSize, panelSize: size)
         return NSRect(origin: origin, size: size)
@@ -498,12 +596,14 @@ final class FloatingPetController: NSObject, NSWindowDelegate {
         }
     }
 
-    private func animate(_ p: NSPanel, to frame: NSRect, completion: @escaping @MainActor () -> Void) {
+    private func animate(_ p: NSPanel, to frame: NSRect, duration: TimeInterval = agentRunDuration,
+                         timing: CAMediaTimingFunctionName = .easeInEaseOut,
+                         completion: @escaping @MainActor () -> Void) {
         runGeneration += 1
         let generation = runGeneration
         NSAnimationContext.runAnimationGroup({ context in
-            context.duration = Self.agentRunDuration
-            context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+            context.duration = duration
+            context.timingFunction = CAMediaTimingFunction(name: timing)
             p.animator().setFrame(frame, display: true)
         }, completionHandler: { [weak self] in
             MainActor.assumeIsolated {
@@ -513,9 +613,20 @@ final class FloatingPetController: NSObject, NSWindowDelegate {
         })
     }
 
-    /// A plain click answers waiting/done agents, then prays over an egg or opens a hatched pet.
+    /// Brings an agent's window forward; injectable so tests never drive real apps.
+    var focusAgentWindow: (AgentSource) -> Bool = { AgentWindowFocuser.focus($0) }
+
+    /// The window a click should open: the finished agent first, else the one asking a question.
+    static func clickTarget(_ summary: AgentActivitySummary) -> AgentSource? {
+        summary.done?.source ?? summary.waiting?.source
+    }
+
+    /// A plain click answers waiting/done agents. When the hook said where that agent runs, the
+    /// click opens its terminal; otherwise it prays over an egg or opens a hatched pet.
     func petClicked() {
+        let target = Self.clickTarget(tracker.summary)
         if tracker.dismissBubble() { agentDidChange() }
+        if let target, focusAgentWindow(target) { return }
         clickRouter.handle(subjectIsEgg: companion.representativeSubject.speciesID == nil)
     }
 
@@ -696,9 +807,11 @@ final class FloatingPetController: NSObject, NSWindowDelegate {
         heartExpiry?.cancel()
         hearts.isShowing = false
         hideHoverCallout()
-        // A hidden pet comes back at home, not where it last ran to.
+        // A hidden pet comes back at home, not where it last ran to or walked.
         runPhase = .home
         runGeneration += 1
+        stopIdleMotions()
+        wanderOffsetX = 0
         guard let p = panel else { return }
         p.orderOut(nil)
         p.contentView = nil
@@ -784,9 +897,10 @@ final class FloatingPetController: NSObject, NSWindowDelegate {
         return p
     }
 
-    private func targetFrame(petSize: CGFloat, showingBubble: Bool) -> NSRect {
-        let size = Self.panelSize(petSize: petSize, showingBubble: showingBubble)
-        let petOrigin: NSPoint
+    private func targetFrame(petSize: CGFloat, showingBubble: Bool, includeWander: Bool = true) -> NSRect {
+        var size = Self.panelSize(petSize: petSize, showingBubble: showingBubble)
+        if !showingBubble { size.height += hopHeadroom }
+        var petOrigin: NSPoint
         if runPhase == .away, let awayPetOrigin {
             petOrigin = awayPetOrigin
         } else if let x = defaults.object(forKey: Self.originXKey) as? Double,
@@ -795,6 +909,7 @@ final class FloatingPetController: NSObject, NSWindowDelegate {
         } else {
             petOrigin = Self.defaultPetOrigin(petSize: petSize)
         }
+        if runPhase != .away, includeWander { petOrigin.x += wanderOffsetX }
         var frame = NSRect(origin: Self.panelOrigin(petOrigin: petOrigin, petSize: petSize, panelSize: size),
                            size: size)
         if !NSScreen.screens.contains(where: { $0.visibleFrame.intersects(frame) }) {
@@ -837,6 +952,21 @@ final class FloatingPetController: NSObject, NSWindowDelegate {
 
     func panelDidMove(panelOrigin: NSPoint, userDragging: Bool) {
         let move = Self.resolveMove(phase: runPhase, userDragging: userDragging)
+        if userDragging, isWalking || wanderOffsetX != 0 {
+            // A drag ends the walk where the user puts the pet: that spot is the new home.
+            let walking = isWalking
+            stopIdleMotions()
+            wanderOffsetX = 0
+            if walking, let p = panel {
+                runGeneration += 1
+                NSAnimationContext.runAnimationGroup { context in
+                    context.duration = 0
+                    p.animator().setFrame(p.frame, display: false)
+                }
+            }
+            updateIdleMotions()
+        }
+        if !userDragging, isWalking { return }   // walk frames are not home
         if move.phase != runPhase {
             runPhase = move.phase
             runGeneration += 1   // the pending return is cancelled
@@ -852,7 +982,7 @@ final class FloatingPetController: NSObject, NSWindowDelegate {
         let petSize = CGFloat(store.floatingPetSize)
         let size = Self.panelSize(petSize: petSize, showingBubble: showingBubble)
         let pet = Self.petOrigin(panelOrigin: panelOrigin, petSize: petSize, panelSize: size)
-        defaults.set(Double(pet.x), forKey: Self.originXKey)
+        defaults.set(Double(pet.x - wanderOffsetX), forKey: Self.originXKey)
         defaults.set(Double(pet.y), forKey: Self.originYKey)
     }
 }
@@ -1027,8 +1157,10 @@ final class PetHostingView: NSHostingView<AnyView> {
 final class FloatingPetAgentModel {
     var summary = AgentActivitySummary()
     var bobs = false
-    /// Empty = no idle motion loop.
+    /// Idle motions the controller may pick from; empty = no schedule.
     var idleMotions: [PetMotion] = []
+    /// The idle motion to play now; nil = rest.
+    var motionCue: PetMotionCue?
 }
 
 @MainActor
@@ -1088,7 +1220,7 @@ struct FloatingPetView: View {
                     }
                 }
                 // Keep the attached heart and prayer particles aligned with the bobbing sprite.
-                .modifier(PetIdleMotion(motions: agent.idleMotions, petSize: size))
+                .modifier(PetIdleMotion(cue: agent.motionCue, petSize: size, facesBack: companion.facesBack))
                 .modifier(AgentBob(active: agent.bobs))
                 .zIndex(0)
         }

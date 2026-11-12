@@ -54,6 +54,8 @@ def main():
             "CFBundleShortVersionString": "0.3.0", "CFBundleVersion": "4",
             "LSMinimumSystemVersion": "14.0", "LSUIElement": True,
             "NSHighResolutionCapable": True, "PTBGoogleSaveVersion": True,
+            # Clicking the pet after an agent finishes selects that agent's Terminal / iTerm2 tab.
+            "NSAppleEventsUsageDescription": "Opens the terminal tab of a coding agent when you click the pet.",
             # Its own agent URL scheme, so coding-agent hooks reach this build and not the original app.
             "CFBundleURLTypes": [{"CFBundleURLName": "io.github.peses0326.poketokenbar-gs.agent",
                                   "CFBundleURLSchemes": ["poketokenbar-gs"]}]}

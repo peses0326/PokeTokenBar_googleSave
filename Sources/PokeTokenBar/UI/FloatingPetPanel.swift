@@ -338,6 +338,8 @@ final class FloatingPetController: NSObject, NSWindowDelegate {
             _ = store.floatingPetEnabled
             _ = store.floatingPetSize
             _ = store.floatingPetAgentActivity
+            _ = store.floatingPetAutoMotion
+            _ = store.floatingPetMotions
             _ = store.currentBubbleAlert
             _ = store.todayTotalTokens
             _ = store.highestLimitUtilization
@@ -386,6 +388,16 @@ final class FloatingPetController: NSObject, NSWindowDelegate {
 
     var isBobbing: Bool { agentModel.bobs }
 
+    /// Idle motions the pet may play now; recomputed whenever bobbing, settings or power change.
+    var idleMotions: [PetMotion] { agentModel.idleMotions }
+
+    private func updateIdleMotions() {
+        let next = PetMotionSchedule.activeMotions(
+            autoMotion: store.floatingPetAutoMotion, enabled: store.floatingPetMotions,
+            motionAllowed: motionAllowed, bobbing: agentModel.bobs)
+        if agentModel.idleMotions != next { agentModel.idleMotions = next }
+    }
+
     // MARK: Agent activity
 
     /// Entry point for `poketokenbar://agent` URLs. Dropped while the pet or the setting is off.
@@ -399,6 +411,7 @@ final class FloatingPetController: NSObject, NSWindowDelegate {
         let summary = tracker.summary
         agentModel.summary = summary
         agentModel.bobs = Self.shouldBob(working: summary.working, motionAllowed: motionAllowed)
+        updateIdleMotions()
         scheduleAgentExpiry()
         if summary.done != nil {
             if let p = panel, Self.runsToCursor(phase: runPhase, motionAllowed: motionAllowed, panelVisible: p.isVisible) {
@@ -632,6 +645,7 @@ final class FloatingPetController: NSObject, NSWindowDelegate {
             hosting.strokeDistance = max(10, CGFloat(store.floatingPetSize) * 0.15)
         }
         agentModel.bobs = Self.shouldBob(working: tracker.summary.working, motionAllowed: motionAllowed)
+        updateIdleMotions()
         let petSize = CGFloat(store.floatingPetSize)
         p.setFrame(targetFrame(petSize: petSize, showingBubble: showingBubble),
                    display: true)
@@ -1013,6 +1027,8 @@ final class PetHostingView: NSHostingView<AnyView> {
 final class FloatingPetAgentModel {
     var summary = AgentActivitySummary()
     var bobs = false
+    /// Empty = no idle motion loop.
+    var idleMotions: [PetMotion] = []
 }
 
 @MainActor
@@ -1072,6 +1088,7 @@ struct FloatingPetView: View {
                     }
                 }
                 // Keep the attached heart and prayer particles aligned with the bobbing sprite.
+                .modifier(PetIdleMotion(motions: agent.idleMotions, petSize: size))
                 .modifier(AgentBob(active: agent.bobs))
                 .zIndex(0)
         }

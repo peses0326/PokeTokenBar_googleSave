@@ -196,6 +196,14 @@ final class UsageStore {
     var floatingPetAgentActivity: Bool {
         didSet { defaults.set(floatingPetAgentActivity, forKey: "floatingPetAgentActivity") }
     }
+    /// Let the floating pet play short idle motions on its own. Default on.
+    var floatingPetAutoMotion: Bool {
+        didSet { defaults.set(floatingPetAutoMotion, forKey: "floatingPetAutoMotion") }
+    }
+    /// Which idle motions auto motion may pick. Default: all of them.
+    var floatingPetMotions: Set<PetMotion> {
+        didSet { defaults.set(PetMotion.encode(floatingPetMotions), forKey: "floatingPetMotions") }
+    }
     var disableKeychainAccess: Bool {
         didSet {
             defaults.set(disableKeychainAccess, forKey: "disableKeychainAccess")   // 저장 누락이던 기존 버그 — 재시작 후 풀렸음
@@ -970,6 +978,8 @@ final class UsageStore {
         floatingPetSize = d.object(forKey: "floatingPetSize") as? Double ?? 96
         floatingPetBubbleAlerts = d.object(forKey: "floatingPetBubbleAlerts") as? Bool ?? true
         floatingPetAgentActivity = d.object(forKey: "floatingPetAgentActivity") as? Bool ?? true
+        floatingPetAutoMotion = d.object(forKey: "floatingPetAutoMotion") as? Bool ?? true
+        floatingPetMotions = PetMotion.decode(d.stringArray(forKey: "floatingPetMotions"))
         // 기본 powerSaver — 이 설정이 생기기 전의 고정 캡(0.4s)과 같은 프레임 레이트라, 기존
         // 사용자의 배터리 프로파일은 그대로다. 더 부드러운 쪽은 opt-in(실측 idle CPU 1.8%/5.1%).
         animationQuality = AnimationQuality(rawValue: d.string(forKey: "animationQuality") ?? "") ?? .powerSaver

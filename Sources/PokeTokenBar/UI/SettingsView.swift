@@ -393,8 +393,33 @@ struct SettingsView: View {
                     Toggle(l.floatingPetAgentActivityLabel, isOn: $store.floatingPetAgentActivity)
                         .labelsHidden().toggleStyle(.switch).controlSize(.small)
                 }
+                Divider()
+                toggleRow(l.floatingPetAutoMotionLabel, $store.floatingPetAutoMotion,
+                          hint: l.floatingPetAutoMotionHint)
+                if store.floatingPetAutoMotion {
+                    petMotionChecklist(store)
+                }
             }
         }
+    }
+
+    /// One checkbox per idle motion, indented under the auto-motion switch.
+    private func petMotionChecklist(_ store: UsageStore) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            ForEach(PetMotion.allCases) { motion in
+                Toggle(l.petMotionName(motion), isOn: Binding(
+                    get: { store.floatingPetMotions.contains(motion) },
+                    set: { on in
+                        if on { store.floatingPetMotions.insert(motion) } else { store.floatingPetMotions.remove(motion) }
+                    }))
+                .toggleStyle(.checkbox)
+                .font(.callout)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.leading, 28)
+        .padding(.trailing, 12)
+        .padding(.bottom, 8)
     }
 
     @ViewBuilder

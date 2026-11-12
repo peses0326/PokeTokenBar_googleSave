@@ -494,6 +494,30 @@ struct L {
           "Coding-Agents steuern es über poketokenbar://-Links – siehe README",
           "Агенты управляют питомцем через ссылки poketokenbar:// — см. README")
     }
+    var floatingPetAutoMotionLabel: String {
+        t("자동 움직임", "Auto motion", "自動モーション", "Movimiento automático",
+          "Mouvements automatiques", "Movimento automático", "Automatische Bewegung", "Автодвижения")
+    }
+    var floatingPetAutoMotionHint: String {
+        t("가끔 혼자 움직여요 — 동작별로 켜고 끌 수 있어요",
+          "Moves on its own now and then — pick the motions below",
+          "ときどき自分で動きます — 動きごとにオン・オフできます",
+          "Se mueve de vez en cuando — elige los movimientos",
+          "Bouge de temps en temps — choisis les mouvements",
+          "Mexe-se de vez em quando — escolha os movimentos",
+          "Bewegt sich ab und zu – Bewegungen einzeln wählbar",
+          "Иногда двигается сам — выберите движения")
+    }
+    func petMotionName(_ motion: PetMotion) -> String {
+        switch motion {
+        case .hop: return t("깡충 뛰기", "Hop", "ジャンプ", "Saltito", "Petit saut", "Pulinho", "Hüpfen", "Прыжок")
+        case .lookAround: return t("두리번거리기", "Look around", "きょろきょろ", "Mirar alrededor", "Regarder autour",
+                                   "Olhar em volta", "Umschauen", "Оглядеться")
+        case .wiggle: return t("흔들기", "Wiggle", "ぷるぷる", "Menearse", "Se trémousser", "Chacoalhar", "Wackeln", "Покачаться")
+        case .bounce: return t("통통 튀기", "Bounce", "ぴょこぴょこ", "Rebotar", "Rebondir", "Quicar", "Federn", "Подпрыгивать")
+        case .sway: return t("좌우로 기울이기", "Sway", "ゆらゆら", "Balancearse", "Se balancer", "Balançar", "Schaukeln", "Раскачиваться")
+        }
+    }
     var agentWaitingTitle: String {
         t("에이전트가 기다려요", "Your agent needs you", "エージェントが呼んでいます", "Tu agente te necesita",
           "Ton agent a besoin de toi", "Seu agente precisa de você", "Dein Agent braucht dich", "Агент ждёт вас")

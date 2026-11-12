@@ -2032,14 +2032,14 @@ extension L {
                                  "Escolha sua conta Google no navegador e permita salvar no seu Drive.",
                                  "Wähle im Browser dein Google-Konto und erlaube das Speichern in deinem Drive.",
                                  "Выберите аккаунт Google в браузере и разрешите сохранение на Диск.") }
-    var gsClientMissing: String { t("이 테스트 빌드는 앱 개발용 Google 클라이언트 ID 등록을 기다리고 있습니다.",
-                                    "This preview is waiting for the app’s Google OAuth client ID.",
-                                    "このテストビルドはアプリの Google OAuth クライアント ID の登録を待っています。",
-                                    "Esta versión de prueba espera el ID de cliente OAuth de Google de la app.",
-                                    "Cette préversion attend l’identifiant client OAuth Google de l’app.",
-                                    "Esta prévia aguarda o ID de cliente OAuth do Google do app.",
-                                    "Diese Vorschau wartet auf die Google-OAuth-Client-ID der App.",
-                                    "Эта тестовая сборка ожидает OAuth client ID Google для приложения.") }
+    var gsClientMissing: String { t("이 빌드에는 Google OAuth 클라이언트 ID가 등록되지 않았습니다.",
+                                    "This build has no Google OAuth client ID.",
+                                    "このビルドには Google OAuth クライアント ID が登録されていません。",
+                                    "Esta compilación no tiene un ID de cliente OAuth de Google.",
+                                    "Cette version n’a pas d’identifiant client OAuth Google.",
+                                    "Esta versão não tem um ID de cliente OAuth do Google.",
+                                    "Dieser Build hat keine Google-OAuth-Client-ID.",
+                                    "В этой сборке нет OAuth client ID Google.") }
     var gsConnecting: String { t("Google 연결 중…", "Connecting to Google…", "Google に接続中…", "Conectando con Google…", "Connexion à Google…", "Conectando ao Google…", "Verbindung mit Google…", "Подключение к Google…") }
     var gsSignInAgain: String { t("Google 다시 로그인", "Sign in to Google again", "Google に再ログイン", "Volver a iniciar sesión en Google", "Se reconnecter à Google", "Entrar no Google novamente", "Erneut bei Google anmelden", "Снова войти в Google") }
     var gsAutoSyncNote: String { t("자동 동기화는 앱이 실행 중일 때 30분 간격으로 확인합니다. 변경된 진행만 업로드합니다.",

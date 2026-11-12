@@ -16,8 +16,8 @@ def main():
     parser.add_argument("--products-dir", type=Path, help="Use an already built Swift product directory")
     parser.add_argument("--google-client-id", default=os.environ.get("PTB_GOOGLE_CLIENT_ID"), help="Developer's registered Desktop OAuth client ID")
     parser.add_argument("--oauth-client-config", type=Path, help="Developer build input only; users never select this JSON")
-    parser.add_argument("--allow-unconfigured", action="store_true", help="Build an explicitly disabled sign-in preview")
-    parser.add_argument("--output-dir", type=Path, help="Package separately from a currently running preview")
+    parser.add_argument("--allow-unconfigured", action="store_true", help="Build with Google sign-in explicitly disabled")
+    parser.add_argument("--output-dir", type=Path, help="Package somewhere other than build/google-save-version")
     args = parser.parse_args()
     client_id, client_secret = args.google_client_id, ""
     if args.oauth_client_config:
@@ -35,7 +35,7 @@ def main():
         ["swift", "build", "-c", "release", "--build-system", "native", "--show-bin-path"],
         cwd=repo, check=True, stdout=subprocess.PIPE, text=True).stdout.strip())
     name = "PokeTokenBar_gs"
-    app = (args.output_dir.resolve() if args.output_dir else repo / "build/google-preview") / (name + ".app")
+    app = (args.output_dir.resolve() if args.output_dir else repo / "build/google-save-version") / (name + ".app")
     if app.exists():
         shutil.rmtree(app)
     executable = app / "Contents/MacOS/PokeTokenBar"
@@ -53,7 +53,10 @@ def main():
             "CFBundleName": name, "CFBundleDisplayName": name, "CFBundlePackageType": "APPL",
             "CFBundleShortVersionString": "0.3.0", "CFBundleVersion": "4",
             "LSMinimumSystemVersion": "14.0", "LSUIElement": True,
-            "NSHighResolutionCapable": True, "PTBCloudPreview": True}
+            "NSHighResolutionCapable": True, "PTBGoogleSaveVersion": True,
+            # Its own agent URL scheme, so coding-agent hooks reach this build and not the original app.
+            "CFBundleURLTypes": [{"CFBundleURLName": "io.github.peses0326.poketokenbar-gs.agent",
+                                  "CFBundleURLSchemes": ["poketokenbar-gs"]}]}
     if client_id:
         info["PTBGoogleOAuthClientID"] = client_id
         if client_secret:

@@ -110,7 +110,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         cloudSync = GoogleCloudSync()
         // The Google sync build installs beside the original app. Its update banner would point at the
         // original release (and `brew upgrade` would replace the original cask), so it does not check.
-        updater = AppEnv.isCloudPreview ? UpdateChecker(fetchLatest: { nil }) : UpdateChecker()
+        updater = AppEnv.isGoogleSaveVersion ? UpdateChecker(fetchLatest: { nil }) : UpdateChecker()
         store.localizationLanguage = companion.language   // 알림 현지화용 미러 시드
         store.onRefresh = { [weak self] in self?.onStoreRefreshed() }   // 한도 로드 후 companion·사탕 지급
         floatingPet = FloatingPetController(

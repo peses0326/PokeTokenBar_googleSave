@@ -19,7 +19,7 @@
 
 メニューバー・ポップオーバー・設定・ログイン時の起動など、それ以外はすべてオリジナルのコード（オリジナル v2.5.7 ベース）のままです。アップデートするとオリジナルのアプリが入るため、`_gs` ビルドはアップデート確認だけ行いません。
 
-ビルド: `python3 scripts/build-google-preview.py --google-client-id 'YOUR_CLIENT_ID.apps.googleusercontent.com'` → `build/google-preview/PokeTokenBar_gs.app`
+ビルド: `python3 scripts/build-google-save-version.py --google-client-id 'YOUR_CLIENT_ID.apps.googleusercontent.com'` → `build/google-save-version/PokeTokenBar_gs.app`
 [プライバシーポリシー](https://peses0326.github.io/PokeTokenBar_googleSave/privacy.html) · [利用規約](https://peses0326.github.io/PokeTokenBar_googleSave/terms.html)
 
 ---

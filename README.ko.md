@@ -19,7 +19,7 @@
 
 그 밖의 메뉴바·팝오버·설정·로그인 시 실행 등은 모두 원본 코드(원본 v2.5.7 기준)를 그대로 따릅니다. 업데이트하면 원본 앱이 설치되므로 `_gs` 빌드는 업데이트 확인만 하지 않습니다.
 
-빌드: `python3 scripts/build-google-preview.py --google-client-id 'YOUR_CLIENT_ID.apps.googleusercontent.com'` → `build/google-preview/PokeTokenBar_gs.app`
+빌드: `python3 scripts/build-google-save-version.py --google-client-id 'YOUR_CLIENT_ID.apps.googleusercontent.com'` → `build/google-save-version/PokeTokenBar_gs.app`
 [개인정보처리방침](https://peses0326.github.io/PokeTokenBar_googleSave/privacy.html) · [서비스 약관](https://peses0326.github.io/PokeTokenBar_googleSave/terms.html)
 
 ---

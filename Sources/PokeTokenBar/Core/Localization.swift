@@ -508,6 +508,18 @@ struct L {
           "Bewegt sich ab und zu – Bewegungen einzeln wählbar",
           "Иногда двигается сам — выберите движения")
     }
+    var petMotionFrequencyLabel: String {
+        t("빈도", "Frequency", "頻度", "Frecuencia", "Fréquence", "Frequência", "Häufigkeit", "Частота")
+    }
+    var petMotionRadiusLabel: String {
+        t("이동 범위", "Range", "移動範囲", "Alcance", "Portée", "Alcance", "Reichweite", "Радиус")
+    }
+    var petMotionLevelCalm: String {
+        t("차분", "Calm", "おだやか", "Calma", "Calme", "Calmo", "Ruhig", "Спокойно")
+    }
+    var petMotionLevelLively: String {
+        t("활발", "Lively", "活発", "Activa", "Vif", "Agitado", "Lebhaft", "Активно")
+    }
     func petMotionName(_ motion: PetMotion) -> String {
         switch motion {
         case .hop: return t("깡충 뛰기", "Hop", "ジャンプ", "Saltito", "Petit saut", "Pulinho", "Hüpfen", "Прыжок")

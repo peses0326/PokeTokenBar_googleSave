@@ -126,14 +126,16 @@ class GoogleSyncTests(unittest.TestCase):
         self.a.exchange(save(200))
         # B published from an offline/stale view of the same ancestor.
         self.b.publish(save(300), old_clock, old_records)
-        self.assertEqual(len(cloud.heads(self.a.records())), 2)
+        branches = {r["revision"] for r in cloud.heads(self.a.records())}
+        self.assertEqual(len(branches), 2)
         before = len(self.google.store)
         self.assertEqual(self.a.exchange(save(200))["status"], "conflict")
         self.assertEqual(len(self.google.store), before)
         self.a.exchange(save(200), "local")
         records = self.a.records()
         self.assertEqual(len(cloud.heads(records)), 1)
-        self.assertEqual(len(records), before + 1)  # Both original branches remain available.
+        # Both original branches remain available; only their shared ancestor may be trashed.
+        self.assertTrue(branches.issubset({r["revision"] for r in records}))
         self.assertEqual(self.a.download(cloud.heads(records)[0])["state"]["usedSinceInstall"], 200)
 
     def test_upload_lost_response_and_new_local_changes_are_recovered_in_order(self):
@@ -213,7 +215,7 @@ class GoogleSyncTests(unittest.TestCase):
             self.a.exchange(save(n))
         own = [r for r in self.a.records() if r["writer"] == self.a.journal["device"]]
         self.assertEqual(len(own), cloud.REVISIONS_PER_DEVICE)
-        self.assertEqual(cloud.REVISIONS_PER_DEVICE, 5)
+        self.assertEqual(cloud.REVISIONS_PER_DEVICE, 2)
         self.assertTrue(b_files.issubset(set(self.google.store)))
         self.assertTrue(any(meta.get("trashed") for meta, _ in self.google.store.values()))
         self.assertFalse(any(method == "DELETE" for _, method, _ in self.google.requests))

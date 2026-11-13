@@ -34,8 +34,8 @@ TOKEN = "https://oauth2.googleapis.com/token"
 MAX_SAVE = 8 * 1024 * 1024
 MAX_SUMMARY = 256 * 1024
 MAX_FILES = 2000
-# Each device keeps only its newest revisions; older ones it wrote go to the Drive trash.
-REVISIONS_PER_DEVICE = 5
+# Each device keeps its current revision plus one backup; older ones it wrote go to the Drive trash.
+REVISIONS_PER_DEVICE = 2
 # How long the loopback listener waits for the browser. The consent screen, the unverified-app
 # warning and adding a test user can easily take longer than 4 minutes; when the listener has
 # already exited, the browser only shows "127.0.0.1 refused to connect". GoogleCloudSync.swift

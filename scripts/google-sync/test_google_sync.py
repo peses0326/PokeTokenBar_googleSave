@@ -47,6 +47,11 @@ class FakeGoogle:
     def download(self, key, maximum=cloud.MAX_SAVE):
         return copy.deepcopy(self.store[key][1])
 
+    def update(self, key, metadata, value):
+        meta = copy.deepcopy(self.store[key][0])
+        meta.update(metadata)
+        self.store[key] = (meta, copy.deepcopy(value))
+
     def request(self, url, method, value=None):
         self.requests.append((url, method, copy.deepcopy(value)))
         key = urllib.parse.urlparse(url).path.rsplit("/", 1)[1]
@@ -299,6 +304,56 @@ class GoogleSyncTests(unittest.TestCase):
             with self.assertRaisesRegex(cloud.SyncError, "permission was not granted"):
                 cloud.authorize(self.directory / "denied", client)
         self.assertFalse((self.directory / "denied/credentials.json").exists())
+
+
+DEVICE_A = "11111111-1111-4111-8111-111111111111"
+DEVICE_B = "22222222-2222-4222-8222-222222222222"
+
+
+class UsageSummaryTests(unittest.TestCase):
+    def setUp(self):
+        self.google = FakeGoogle()
+
+    def usage_files(self):
+        return [(meta, value) for meta, value in self.google.store.values()
+                if meta["appProperties"]["ptbKind"] == cloud.USAGE_KIND and not meta.get("trashed")]
+
+    def test_each_device_rewrites_one_file_in_place(self):
+        cloud.usage_push(self.google, DEVICE_A, "parkes-server", {"2026-11-13": {"claude": 10}})
+        cloud.usage_push(self.google, DEVICE_A, "parkes-server", {"2026-11-13": {"claude": 25}})
+        files = self.usage_files()
+        self.assertEqual(len(files), 1)
+        self.assertEqual(files[0][0]["name"], "PokeTokenBar-Usage-parkes-server.json")
+        self.assertEqual(files[0][1]["days"], {"2026-11-13": {"claude": 25}})
+        cloud.usage_push(self.google, DEVICE_B, "laptop", {"2026-11-13": {"codex": 5}})
+        self.assertEqual(len(self.usage_files()), 2)
+
+    def test_only_recent_days_are_uploaded(self):
+        days = {f"2026-10-{d:02d}": {"claude": d} for d in range(1, 31)}
+        cloud.usage_push(self.google, DEVICE_A, "s", days)
+        uploaded = self.usage_files()[0][1]["days"]
+        self.assertEqual(len(uploaded), cloud.USAGE_DAYS)
+        self.assertEqual(max(uploaded), "2026-10-30")
+
+    def test_list_excludes_this_device_and_skips_malformed_files(self):
+        cloud.usage_push(self.google, DEVICE_A, "me", {"2026-11-13": {"claude": 1}})
+        cloud.usage_push(self.google, DEVICE_B, "server", {"2026-11-13": {"claude": 7}})
+        self.google.create({"name": "x", "appProperties": {"ptbKind": cloud.USAGE_KIND}}, {"format": "nope"})
+        result = cloud.usage_list(self.google, exclude=DEVICE_A)
+        self.assertEqual([d["device"] for d in result["devices"]], [DEVICE_B])
+        self.assertEqual(result["devices"][0]["days"], {"2026-11-13": {"claude": 7}})
+        self.assertEqual(result["skipped"], 1)
+
+    def test_hostile_usage_values_are_rejected(self):
+        good = {"format": "poketokenbar.usage", "schema": 1, "device": DEVICE_A, "days": {"2026-11-13": {"claude": 1}}}
+        cloud.validate_usage(good)
+        for days in ({"2026-11-13": {"claude": True}}, {"2026-11-13": {"claude": -1}},
+                     {"2026-11-13": {"claude": cloud.MAX_DAY_TOKENS + 1}}, {"13-11-2026": {"claude": 1}},
+                     {"2026-11-13": {"Claude Code!": 1}}, {"2026-11-13": [1]}):
+            with self.assertRaises(cloud.SyncError, msg=str(days)):
+                cloud.validate_usage(dict(good, days=days))
+        with self.assertRaises(cloud.SyncError):
+            cloud.validate_usage(dict(good, device="not-a-uuid"))
 
 
 class SignInWindowTest(unittest.TestCase):

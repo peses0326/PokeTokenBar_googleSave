@@ -2040,6 +2040,8 @@ extension L {
                             "Speichert deinen Fortschritt automatisch im Ordner PokeTokenBar_Save in deinem Google Drive.",
                             "Автоматически сохраняет прогресс в папку PokeTokenBar_Save на вашем Google Диске.") }
     var gsOpenFolder: String { t("내 Drive의 세이브 폴더 열기", "Open my Drive save folder", "ドライブのセーブフォルダを開く", "Abrir la carpeta de guardado en Drive", "Ouvrir le dossier de sauvegarde Drive", "Abrir a pasta de salvamento no Drive", "Speicherordner in Drive öffnen", "Открыть папку сохранений на Диске") }
+    /// Other computers' usage today; it grows the companion but is not added to this Mac's usage numbers.
+    func gsOtherDevicesToday(_ list: String) -> String { t("다른 기기 오늘 (성장에 반영): \(list)", "Other devices today (counted toward growth): \(list)", "他のデバイスの今日（成長に反映）: \(list)", "Otros dispositivos hoy (cuentan para el crecimiento): \(list)", "Autres appareils aujourd’hui (comptés pour la croissance) : \(list)", "Outros dispositivos hoje (contam para o crescimento): \(list)", "Andere Geräte heute (zählen fürs Wachstum): \(list)", "Другие устройства сегодня (идут в рост): \(list)") }
     func gsLastSynced(_ date: String) -> String { t("최근 동기화: \(date)", "Last synced: \(date)", "最終同期: \(date)", "Última sincronización: \(date)", "Dernière synchro : \(date)", "Última sincronização: \(date)", "Zuletzt synchronisiert: \(date)", "Последняя синхронизация: \(date)") }
     var gsEmpty: String { t("아직 클라우드 세이브가 없습니다. 이 Mac의 진행으로 시작할 수 있습니다.",
                             "No cloud save yet. Start with this Mac’s progress.",

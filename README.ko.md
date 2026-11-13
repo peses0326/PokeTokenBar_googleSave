@@ -14,12 +14,30 @@
 | | 원본 PokeTokenBar | PokeTokenBar_gs |
 |---|---|---|
 | 세이브 동기화 | 세이브 파일 수동 내보내기/가져오기 | 내 Google Drive의 `PokeTokenBar_Save` 폴더에 자동 백업(`drive.file` 권한만 사용), 다른 Mac에서 이어 하기 |
-| 앱 구분 | `PokeTokenBar.app` | `PokeTokenBar_gs.app`: 번들 ID·데이터 폴더가 따로라 원본과 함께 설치 가능 |
+| 플로팅 펫 움직임 | 대기 중 움직임 없음(에이전트 작업 중에만 들썩임) | 하나씩 골라 켜는 자동 움직임(깡충 뛰기, 좌우로 돌아다니기, 두리번거리기, 흔들기, 통통 튀기, 좌우로 기울이기), 빈도와 이동 범위 1~5단계 |
+| 에이전트 작업 완료 후 펫 클릭 | 팝오버 열기 | 그 에이전트가 돌던 Terminal / iTerm2 탭을 앞으로 가져옴(아래 훅의 `app`/`tty` 파라미터 필요) |
+| 앱 구분 | `PokeTokenBar.app` | `PokeTokenBar_gs.app`: 번들 ID·데이터 폴더·에이전트 URL 스킴(`poketokenbar-gs://`)이 따로라 원본과 함께 설치 가능 |
 | 알 가격 | 1B / 2.5B / 4B | 700M / 1.75B / 2.8B (30% 할인) |
 
 그 밖의 메뉴바·팝오버·설정·로그인 시 실행 등은 모두 원본 코드(원본 v2.5.7 기준)를 그대로 따릅니다. 업데이트하면 원본 앱이 설치되므로 `_gs` 빌드는 업데이트 확인만 하지 않습니다.
 
-빌드: `python3 scripts/build-google-save-version.py --google-client-id 'YOUR_CLIENT_ID.apps.googleusercontent.com'` → `build/google-save-version/PokeTokenBar_gs.app`
+**자동 움직임.** 설정 → 플로팅 펫 → *자동 움직임*. 동작마다 체크박스가 있습니다. *빈도*는 얼마나 자주 움직일지(1단계 약 15~35초, 기본 2단계 약 8~20초, 5단계 약 1.5~4초), *이동 범위*는 걷기가 펫을 놓아둔 자리에서 얼마나 멀리 갈 수 있는지(펫 너비의 약 0.75~6배)를 정합니다. 펫은 늘 제자리 쪽으로 돌아오고 화면 밖으로 나가지 않으며, 드래그하면 걷기를 멈춥니다. macOS *동작 줄이기*나 저전력 모드에서는 움직이지 않습니다.
+
+**Google Drive 동기화**
+
+1. 설정 → *Google 동기화* → **Google 로그인**. 브라우저가 열리면 승인합니다. 탭에 *Sign-in received*가 뜨고 앱에 계정이 표시됩니다.
+2. 첫 동기화에서 시작점을 정합니다. Drive가 비어 있으면 지금 진행이 올라가고, 이미 세이브가 있으면 *이 Mac의 진행으로 계속* 또는 클라우드 세이브 중 하나를 고릅니다.
+3. 다른 Mac에서는 앱을 설치하고 같은 Google 계정으로 로그인한 뒤 클라우드 세이브를 골라 이어 합니다.
+
+동작 방식:
+
+- **무엇이 동기화되나.** 게임 세이브(동료 포켓몬, 도감, 알, 아이템, 사탕)와 성장·상점 난이도. 앱 설정은 Mac마다 따로입니다. 사용량 로그와 토큰 기록은 올리지 않으며, 각 Mac은 자기 로컬 로그로 포켓몬을 키웁니다.
+- **어디에.** 내 Drive의 `PokeTokenBar_Save` 폴더에 리비전마다 작은 JSON 파일 하나. 설정의 *내 Drive의 세이브 폴더 열기*로 볼 수 있습니다. Mac마다 최근 30개 리비전만 남기고 자기가 쓴 오래된 것은 지웁니다.
+- **언제.** 앱이 실행 중일 때 사용량 새로고침 뒤 최대 30분에 한 번, 그리고 *지금 동기화*를 누를 때. 한 번 동기화할 때 짧은 Python 프로세스 하나(`python3` 3.9 이상 필요, 예: Xcode Command Line Tools)가 폴더 목록을 확인하고 게임이 바뀌었을 때만 올리므로 CPU·배터리·네트워크 부담은 무시할 수준입니다.
+- **충돌.** 리비전은 시각이 아니라 벡터 클록으로 순서를 판단합니다. 두 Mac이 마지막 동기화 이후 각자 진행했다면 아무것도 덮어쓰지 않고 어느 세이브로 이어 갈지 묻습니다. 교체 전에는 로컬 백업을 만들고, 두 세이브의 아이템·경험치를 합치지는 않습니다. 한 번에 한 Mac만 쓰면 생기지 않습니다.
+
+빌드: `python3 scripts/build-google-save-version.py --oauth-client-config <내려받은 Desktop OAuth 클라이언트 JSON>` → `build/google-save-version/PokeTokenBar_gs.app`. Google 토큰 서버는 PKCE를 써도 Desktop 클라이언트 시크릿을 요구하므로 `--google-client-id`만 주지 말고 JSON을 넘겨야 합니다. 아니면 로그인이 HTTP 400으로 실패합니다. 이 JSON은 저장소 밖에 둡니다.
+
 [개인정보처리방침](https://peses0326.github.io/PokeTokenBar_googleSave/privacy.html) · [서비스 약관](https://peses0326.github.io/PokeTokenBar_googleSave/terms.html)
 
 ---

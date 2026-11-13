@@ -999,6 +999,25 @@ final class CompanionStore {
     /// 토큰 증분을 현재 포켓몬에 적용 — 임계 도달 시 진화/졸업.
     /// 라인 미로딩(재시작 직후·오프라인)이어도 사용량은 항상 적립한다 — 여기서 드롭하면
     /// 프로바이더별 ledger 는 이미 전진해 델타가 영구 유실된다. 진화 판정만 라인 로드 후로 미룬다.
+    /// Grows the companion by what other computers used since their last credit (their usage files
+    /// in the Drive save folder). Returns the tokens credited. Runs before the save is uploaded, so the
+    /// updated ledger travels with it.
+    @discardableResult
+    func creditRemoteUsage(_ devices: [RemoteDeviceUsage], todayDate: String) -> Int {
+        guard state.installBaselineSet else { return 0 }
+        var ledger = state.remoteUsageLedger
+        let delta = RemoteUsageCredit.apply(devices, ledger: &ledger, todayDate: todayDate)
+        guard ledger != state.remoteUsageLedger || delta > 0 else { return 0 }
+        state.remoteUsageLedger = ledger
+        if delta > 0 {
+            state.usedSinceInstall += delta
+            if state.active == nil { state.eggUsage += delta } else { applyUsage(delta) }
+            AppLog.write("companion remote usage credited tokens=\(delta) devices=\(devices.count)")
+        }
+        save()
+        return delta
+    }
+
     func applyUsage(_ delta: Int) {
         guard state.active != nil else { return }
         state.active!.usedAtStage += delta

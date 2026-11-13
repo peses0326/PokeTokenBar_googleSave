@@ -24,6 +24,13 @@ struct GoogleSyncSettingsView: View {
                     Text(l.gsLastSynced(date.formatted(date: .abbreviated, time: .shortened)))
                         .font(.caption).foregroundStyle(.secondary)
                 }
+                if !sync.remoteDevices.isEmpty {
+                    let today = LocalUsageReader.todayKey()
+                    Text(l.gsOtherDevicesToday(sync.remoteDevices
+                        .map { "\($0.deviceName) \(TokenFormatter.compact($0.tokens(on: today)))" }
+                        .joined(separator: " · ")))
+                        .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                }
                 if ["empty", "choose", "conflict"].contains(sync.status) {
                     Text(sync.status == "empty"
                          ? l.gsEmpty

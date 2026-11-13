@@ -149,6 +149,12 @@ enum SaveTransfer {
         s.claimedTodayTokensByProvider = s.claimedTodayTokensByProvider?.reduce(into: [:]) { result, entry in
             result[entry.key] = clampToken(entry.value)
         }
+        s.remoteUsageLedger = s.remoteUsageLedger.filter { RemoteUsageCredit.isDay($0.value.seededThrough) }
+            .prefix(RemoteUsageCredit.maxDevices).reduce(into: [:]) { result, entry in
+                var ledger = entry.value
+                ledger.claimed = ledger.claimed.filter { RemoteUsageCredit.isDay($0.key) }.mapValues(clampToken)
+                result[entry.key] = ledger
+            }
         // 알 보증은 "지금 품고 있는 알"에만 붙는 값이라 활성 포켓몬과 공존할 수 없다. 손편집·구버전
         // 조합으로 둘 다 들어오면 그 보증이 다음 알로 새어 영구 프리미엄이 되므로 여기서 떨군다.
         // 그 보증으로 미리 뽑아둔 종(pendingHatchID)도 함께 버린다 — 보증만 지우면 졸업 후 받는 **무료**
@@ -220,6 +226,8 @@ enum SaveTransfer {
             imported.candyWindowEpoch, imported.candyGrantTier,
             current.candyWindowEpoch, current.candyGrantTier)
         state.candyFeatureSeeded = imported.candyFeatureSeeded || current.candyFeatureSeeded
+        // Account-wide like the candy ledger: merge, so an older save cannot re-credit server usage.
+        state.remoteUsageLedger = RemoteUsageCredit.merged(imported.remoteUsageLedger, current.remoteUsageLedger)
         let hasCurrentProviderData = hasUsageData && !todayTokensByProvider.isEmpty
         if hasCurrentProviderData {
             // 신규 설치와 같은 규칙: 불러온 시점 이전의 이 기기 사용량은 소급 적립하지 않는다.

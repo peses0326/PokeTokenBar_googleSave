@@ -126,14 +126,16 @@ class GoogleSyncTests(unittest.TestCase):
         self.a.exchange(save(200))
         # B published from an offline/stale view of the same ancestor.
         self.b.publish(save(300), old_clock, old_records)
-        self.assertEqual(len(cloud.heads(self.a.records())), 2)
+        branches = {r["revision"] for r in cloud.heads(self.a.records())}
+        self.assertEqual(len(branches), 2)
         before = len(self.google.store)
         self.assertEqual(self.a.exchange(save(200))["status"], "conflict")
         self.assertEqual(len(self.google.store), before)
         self.a.exchange(save(200), "local")
         records = self.a.records()
         self.assertEqual(len(cloud.heads(records)), 1)
-        self.assertEqual(len(records), before + 1)  # Both original branches remain available.
+        # Both original branches remain available; only their shared ancestor may be trashed.
+        self.assertTrue(branches.issubset({r["revision"] for r in records}))
         self.assertEqual(self.a.download(cloud.heads(records)[0])["state"]["usedSinceInstall"], 200)
 
     def test_upload_lost_response_and_new_local_changes_are_recovered_in_order(self):
@@ -212,10 +214,26 @@ class GoogleSyncTests(unittest.TestCase):
         for n in range(1, 40):
             self.a.exchange(save(n))
         own = [r for r in self.a.records() if r["writer"] == self.a.journal["device"]]
-        self.assertLessEqual(len(own), 30)
+        self.assertEqual(len(own), cloud.REVISIONS_PER_DEVICE)
+        self.assertEqual(cloud.REVISIONS_PER_DEVICE, 2)
         self.assertTrue(b_files.issubset(set(self.google.store)))
         self.assertTrue(any(meta.get("trashed") for meta, _ in self.google.store.values()))
         self.assertFalse(any(method == "DELETE" for _, method, _ in self.google.requests))
+
+    def test_revision_files_are_named_after_the_device_that_wrote_them(self):
+        self.a.exchange(save(0), "local")
+        names = [meta["name"] for meta, _ in self.google.store.values()]
+        self.assertEqual(len(names), 1)
+        self.assertRegex(names[0], r"^PokeTokenBar-Save-Test-Mac-2026-11-09_000000-[0-9a-f]{8}\.json$")
+
+    def test_revision_file_name_strips_path_and_control_characters(self):
+        rev = "0123456789abcdef"
+        name = lambda device: cloud.revision_file_name(dict(save(), sourceDevice=device), rev)
+        self.assertEqual(name("es의 MacBook Pro"), "PokeTokenBar-Save-es의-MacBook-Pro-2026-11-09_000000-01234567.json")
+        self.assertEqual(name("../a/b:\x00c"), "PokeTokenBar-Save-abc-2026-11-09_000000-01234567.json")
+        self.assertEqual(name(""), "PokeTokenBar-Save-Device-2026-11-09_000000-01234567.json")
+        self.assertEqual(name(None), "PokeTokenBar-Save-Device-2026-11-09_000000-01234567.json")
+        self.assertLessEqual(len(name("x" * 500)), len("PokeTokenBar-Save--2026-11-09_000000-01234567.json") + 40)
 
     def test_clock_validation_rejects_boolean_and_invalid_identity(self):
         for value in [{"bad": 1}, {str(uuid.uuid4()): True}, [], {str(uuid.uuid4()): -1}]:

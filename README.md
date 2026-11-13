@@ -32,7 +32,7 @@ Everything else (menu bar, popover, settings, login launch) is the original code
 How it works:
 
 - **What is synced.** The game save (companion, Pokédex, eggs, items, candies) plus growth/shop difficulty. App settings stay per Mac. Usage logs and token history are never uploaded; each Mac grows the companion from its own local logs.
-- **Where.** One small JSON file per revision in `PokeTokenBar_Save` in your own Drive. *Open my Drive save folder* in Settings shows it. Files are named `PokeTokenBar-Save-<device>-<date>_<time>-<id>.json`; each device keeps its newest 5 revisions and moves older ones it wrote to the Drive trash.
+- **Where.** One small JSON file per revision in `PokeTokenBar_Save` in your own Drive. *Open my Drive save folder* in Settings shows it. Files are named `PokeTokenBar-Save-<device>-<date>_<time>-<id>.json`; each device keeps two: its current save and one backup. Older ones it wrote go to the Drive trash.
 - **When.** After the usage refresh, at most once every 30 minutes while the app runs, plus *Sync now*. A sync starts one short Python process (`python3` 3.9+ must be installed, e.g. via Xcode Command Line Tools), lists the folder and uploads only if the game changed, so the CPU, battery and network cost is negligible.
 - **Conflicts.** Revisions carry vector clocks, not timestamps. If two Macs both progressed since their last sync, nothing is overwritten: the app asks which save to continue, keeps a local backup before replacing anything, and never adds the two saves' items or experience together. Using one Mac at a time avoids this entirely.
 

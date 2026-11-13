@@ -14,12 +14,30 @@ Everything below this section is the original README.
 | | Original PokeTokenBar | PokeTokenBar_gs |
 |---|---|---|
 | Save sync | Manual save export/import | Automatic backup to `PokeTokenBar_Save` in your own Google Drive (`drive.file` scope only), continue on another Mac |
-| App identity | `PokeTokenBar.app` | `PokeTokenBar_gs.app` with its own bundle id and data folder, installs alongside the original |
+| Floating pet motion | No idle motion (bobs only while an agent works) | Idle motions you pick one by one (hop, walk around, look around, wiggle, bounce, sway), with frequency and walking range from 1 to 5 |
+| Clicking the pet after an agent finishes | Opens the popover | Brings that agent's Terminal / iTerm2 tab to the front (needs the `app`/`tty` hook parameters below) |
+| App identity | `PokeTokenBar.app` | `PokeTokenBar_gs.app` with its own bundle id, data folder and `poketokenbar-gs://` agent URL scheme, installs alongside the original |
 | Egg prices | 1B / 2.5B / 4B | 700M / 1.75B / 2.8B (30% off) |
 
 Everything else (menu bar, popover, settings, login launch) is the original code, based on upstream v2.5.7. The `_gs` build skips the update check, because an update would install the original app instead.
 
-Build: `python3 scripts/build-google-save-version.py --google-client-id 'YOUR_CLIENT_ID.apps.googleusercontent.com'` → `build/google-save-version/PokeTokenBar_gs.app`
+**Idle motions.** Settings → Floating Pet → *Auto motion*. Each motion has its own checkbox. *Frequency* sets how often the pet moves (level 1 ≈ every 15–35 s, level 2 = default ≈ 8–20 s, level 5 ≈ 1.5–4 s). *Range* sets how far a walk may wander from where you placed the pet (about 0.75 to 6 pet widths). The pet always walks back toward its home spot, never leaves the screen, and stops a walk when you drag it. Motions pause under macOS *Reduce motion* or Low Power Mode.
+
+**Google Drive sync**
+
+1. Settings → *Google sync* → **Sign in with Google**. Your browser opens; approve the request. The tab then says *Sign-in received*, and the app shows your account.
+2. The first sync decides where to start: an empty Drive gets your current progress; if Drive already has a save, you choose *Continue with this Mac* or one of the cloud saves.
+3. On another Mac, install the app, sign in with the same Google account, and pick the cloud save to continue.
+
+How it works:
+
+- **What is synced.** The game save (companion, Pokédex, eggs, items, candies) plus growth/shop difficulty. App settings stay per Mac. Usage logs and token history are never uploaded; each Mac grows the companion from its own local logs.
+- **Where.** One small JSON file per revision in `PokeTokenBar_Save` in your own Drive. *Open my Drive save folder* in Settings shows it. Files are named `PokeTokenBar-Save-<device>-<date>_<time>-<id>.json`; each device keeps two: its current save and one backup. Older ones it wrote go to the Drive trash.
+- **When.** After the usage refresh, at most once every 30 minutes while the app runs, plus *Sync now*. A sync starts one short Python process (`python3` 3.9+ must be installed, e.g. via Xcode Command Line Tools), lists the folder and uploads only if the game changed, so the CPU, battery and network cost is negligible.
+- **Conflicts.** Revisions carry vector clocks, not timestamps. If two Macs both progressed since their last sync, nothing is overwritten: the app asks which save to continue, keeps a local backup before replacing anything, and never adds the two saves' items or experience together. Using one Mac at a time avoids this entirely.
+
+Build: `python3 scripts/build-google-save-version.py --oauth-client-config <downloaded Desktop OAuth client JSON>` → `build/google-save-version/PokeTokenBar_gs.app`. Google's token endpoint requires the Desktop client secret even with PKCE, so pass the JSON (not only `--google-client-id`) or sign-in fails with HTTP 400. Keep that JSON out of the repository.
+
 [Privacy Policy](https://peses0326.github.io/PokeTokenBar_googleSave/privacy.html) · [Terms of Service](https://peses0326.github.io/PokeTokenBar_googleSave/terms.html)
 
 ---

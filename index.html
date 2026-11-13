@@ -44,6 +44,29 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 </div>
 
 <div class="card">
+  <h2 style="margin-top:0">New: a livelier floating pet</h2>
+  <ul>
+    <li><strong>Idle motions</strong> you switch on one by one: hop, walk around, look around, wiggle, bounce and sway. <em>Frequency</em> and walking <em>range</em> go from 1 (calm) to 5 (lively). The pet walks back toward where you placed it, never leaves the screen, and rests under macOS Reduce motion or Low Power Mode.</li>
+    <li><strong>Click the pet when an agent finishes</strong> to jump to that agent's Terminal or iTerm2 tab (macOS asks once for Automation permission).</li>
+  </ul>
+</div>
+
+<div class="card">
+  <h2 style="margin-top:0">How save sync works</h2>
+  <ol>
+    <li>Settings → <em>Google sync</em> → <strong>Sign in with Google</strong>, and approve in your browser.</li>
+    <li>The first sync uploads your progress, or lets you choose between this Mac and a save already in Drive.</li>
+    <li>On another Mac, sign in with the same account and pick the cloud save to continue.</li>
+  </ol>
+  <ul>
+    <li><strong>What:</strong> the game save (companion, Pokédex, eggs, items) and difficulty. App settings stay on each Mac; usage logs are never uploaded.</li>
+    <li><strong>Where:</strong> small JSON files in <code>PokeTokenBar_Save</code> in your own Drive. Each Mac keeps its last 30 revisions.</li>
+    <li><strong>When:</strong> at most every 30 minutes while the app runs, or on <em>Sync now</em>. Only changed progress is uploaded, so the battery and network cost is negligible.</li>
+    <li><strong>Two Macs at once:</strong> nothing is overwritten. If both progressed, the app asks which save to keep and backs up the local one first.</li>
+  </ul>
+</div>
+
+<div class="card">
   <h2 style="margin-top:0">How Google sign-in is used</h2>
   <p>The app requests only <code>openid</code>, <code>email</code> and <code>https://www.googleapis.com/auth/drive.file</code>.
   <code>drive.file</code> lets the app see and manage <strong>only the files it creates</strong>; it cannot read any other file in your Drive.
@@ -53,7 +76,9 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 <h2>한국어 요약</h2>
 <p>AI 코딩 도구 사용량(내 Mac의 로컬 로그)으로 포켓몬을 키우는 macOS 메뉴바 앱입니다. 선택 기능인 Google Drive 동기화는
 게임 진행을 <strong>본인 Drive</strong>의 <code>PokeTokenBar_Save</code> 폴더에 백업하며, 앱이 만든 파일에만 접근하는 <code>drive.file</code> 권한만 사용합니다.
-개발자 서버는 없습니다. 자세한 내용은 <a href="privacy.html">개인정보처리방침</a>과 <a href="terms.html">서비스 약관</a>을 확인하세요.</p>
+개발자 서버는 없습니다.</p>
+<p>새 기능: 플로팅 펫이 깡충 뛰기·좌우로 돌아다니기·두리번거리기 등 자동으로 움직이고(동작별 켜기, 빈도·이동 범위 1~5단계), 에이전트 작업이 끝났을 때 펫을 클릭하면 그 Terminal/iTerm2 탭이 열립니다.
+동기화는 앱 실행 중 최대 30분마다(또는 <em>지금 동기화</em>) 바뀐 진행만 올리며, 앱 설정과 사용량 로그는 올리지 않습니다. 두 Mac에서 동시에 진행하면 덮어쓰지 않고 어느 세이브로 이어갈지 묻습니다. 자세한 내용은 <a href="privacy.html">개인정보처리방침</a>과 <a href="terms.html">서비스 약관</a>을 확인하세요.</p>
 <footer>
   PokeTokenBar_gs is an unofficial, non-commercial fan project based on the MIT-licensed
   <a href="https://github.com/chattymin/PokeTokenBar">PokeTokenBar</a>. It is not affiliated with, endorsed, sponsored, or approved by

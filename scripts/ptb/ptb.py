@@ -108,6 +108,12 @@ def logout(_args):
 
 # MARK: push
 
+def signed_in_google():
+    if not (state_dir() / "credentials.json").exists():
+        raise cloud.SyncError("Not signed in on this computer yet. Run: ptb login")
+    return cloud.Google(state_dir())
+
+
 def collect_days(cfg):
     roots_c, roots_x = cfg.get("claudeRoots", []), cfg.get("codexRoots", [])
     if not roots_c and not roots_x:
@@ -125,8 +131,8 @@ def push(args):
         # The Mac app already counts this Mac's logs; pushing them too would grow the companion twice.
         raise cloud.SyncError("On a Mac, the PokeTokenBar_gs app counts usage itself; ptb push is for other computers")
     cfg = config()
+    google = signed_in_google()
     days = collect_days(cfg)
-    google = cloud.Google(state_dir())
     device = cloud.Sync(google, state_dir()).journal["device"]
     result = cloud.usage_push(google, device, cfg.get("deviceName") or socket.gethostname(), days)
     today = dt.datetime.now(ptb_collect.ZoneInfo(cfg.get("timezone", "Asia/Seoul"))).date().isoformat()
@@ -184,7 +190,7 @@ def language(args):
 
 
 def status(args):
-    google = cloud.Google(state_dir())
+    google = signed_in_google()
     save, head, branches = latest_save(google)
     state, lang = save["state"], language(args)
     names = dex_names(state)
@@ -214,7 +220,7 @@ def status(args):
 
 
 def dex(args):
-    google = cloud.Google(state_dir())
+    google = signed_in_google()
     save, _, _ = latest_save(google)
     state, lang = save["state"], language(args)
     names = dex_names(state)

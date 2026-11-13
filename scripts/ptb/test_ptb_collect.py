@@ -153,6 +153,28 @@ class CollectorTests(unittest.TestCase):
         self.collector = collect.Collector(self.root / "state")
         self.assertEqual(self.collector.summary(self.now)["sourceId"], source)
 
+    def test_files_deleted_after_the_walk_are_skipped(self):
+        # Claude Code deletes finished subagent transcripts while a session runs: the walk can list a
+        # file that is gone by the time it is opened. It must not abort the whole scan.
+        self.write("live.jsonl", self.claude("m1", 100))
+        real_walk = collect.os.walk
+
+        def walk_with_vanished(root, onerror=None):
+            for directory, dirs, files in real_walk(root, onerror=onerror):
+                yield directory, dirs, files + ["agent-gone.jsonl"]
+
+        from unittest.mock import patch
+        with patch.object(collect.os, "walk", walk_with_vanished):
+            self.collector.scan([self.logs], [self.logs])
+        clean = collect.Collector(self.root / "clean-state")
+        try:
+            clean.scan([self.logs], [self.logs])
+            expected = clean.daily(14, now=self.now)
+        finally:
+            clean.close()
+        self.assertEqual(self.collector.daily(14, now=self.now), expected)
+        self.assertIn("claude", expected["2026-11-09"])
+
     def test_timezone_boundary_and_bounded_export_with_lifetime_total(self):
         self.write("one.jsonl", self.claude(stamp="2026-11-08T15:01:00Z"),
                    self.claude("old", stamp="2025-01-01T00:00:00Z"))

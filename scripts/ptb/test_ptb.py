@@ -34,6 +34,7 @@ class PtbTests(unittest.TestCase):
         self.save = save
         self.patch = patch.object(self.ptb.cloud, "Google", lambda directory: self.google)
         self.patch.start()
+        (self.ptb.state_dir() / "credentials.json").write_text("{}")  # signed in (the fake ignores it)
 
     def tearDown(self):
         self.patch.stop()
@@ -75,6 +76,13 @@ class PtbTests(unittest.TestCase):
         with self.assertRaises(self.ptb.cloud.SyncError):
             self.run_cli("push", platform="darwin")
         self.assertEqual(self.google.store, {}, "nothing uploaded, so the Mac's usage is not counted twice")
+
+    def test_commands_explain_how_to_sign_in_first(self):
+        (self.ptb.state_dir() / "credentials.json").unlink()
+        for command in ("push", "status", "dex"):
+            with self.assertRaises(self.ptb.cloud.SyncError) as error:
+                self.run_cli(command)
+            self.assertIn("ptb login", str(error.exception), command)
 
     def test_push_never_writes_a_save(self):
         root = self.claude_log(1)

@@ -187,7 +187,11 @@ class Collector:
 
     def scan_file(self, path, provider):
         path = Path(path).resolve()
-        with path.open("rb") as stream:
+        try:
+            stream = path.open("rb")
+        except FileNotFoundError:
+            return  # Deleted after the walk listed it (Claude Code removes finished subagent logs).
+        with stream:
             stat = os.fstat(stream.fileno())
             row = self.db.execute("SELECT device,inode,offset,size,mtime,metadata FROM files WHERE path=?",
                                   (str(path),)).fetchone()
@@ -251,7 +255,9 @@ class Collector:
                         raise ValueError(f"Configured log root does not exist: {root}")
                     # A walk is metadata-only for unchanged files; file content is not reread.
                     def onerror(error):
-                        raise error
+                        # A folder removed mid-walk is gone, not an error; anything else (permissions) is.
+                        if not isinstance(error, FileNotFoundError):
+                            raise error
                     for directory, _, files in os.walk(root, onerror=onerror):
                         paths.update(Path(directory, name).resolve() for name in files if name.endswith(".jsonl"))
                 if provider == "codex":
@@ -261,8 +267,11 @@ class Collector:
                         row = self.db.execute("SELECT metadata FROM files WHERE path=?", (str(path),)).fetchone()
                         meta = json.loads(row[0]) if row else {}
                         if not meta.get("session"):
-                            with path.open("rb") as stream:
-                                header = stream.readline(MAX_LINE + 1)
+                            try:
+                                with path.open("rb") as stream:
+                                    header = stream.readline(MAX_LINE + 1)
+                            except FileNotFoundError:
+                                continue
                             if len(header) > MAX_LINE:
                                 raise ValueError(f"Oversized Codex header: {path}")
                             try:
@@ -292,15 +301,20 @@ class Collector:
                         elif parent and not self.db.execute("SELECT 1 FROM sessions WHERE id=?", (parent,)).fetchone():
                             # Real subagents do not replay parent usage; their header
                             # is checked by scan_file. Manual forks need parent history.
-                            with path.open("rb") as stream:
-                                first = json.loads(stream.readline(MAX_LINE + 1))
+                            try:
+                                with path.open("rb") as stream:
+                                    first = json.loads(stream.readline(MAX_LINE + 1))
+                            except FileNotFoundError:
+                                visiting.remove(path)
+                                done.add(path)
+                                return
                             origin = (first.get("payload") or {}).get("source")
                             if not (isinstance(origin, dict) and "subagent" in origin):
                                 raise ValueError(f"Missing Codex fork parent {parent}; include its active/archive root")
                         self.scan_file(path, provider)
                         visiting.remove(path)
                         done.add(path)
-                    for path in sorted(paths):
+                    for path in sorted(headers):
                         visit(path)
                 else:
                     for path in sorted(paths):

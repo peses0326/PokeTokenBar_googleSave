@@ -50,13 +50,14 @@ final class FloatingPetController: NSObject, NSWindowDelegate {
 
     /// Vertical space above the sprite for the bubble + VStack spacing (pt).
     /// Sized for two wrapped body lines + title + padding + tail (ja strings).
-    static let bubbleHeadroom: CGFloat = 72
+    /// These are the `SpeechBubbleStyle.standard` (10 pt) values; a larger font scales them.
+    static let bubbleHeadroom: CGFloat = SpeechBubbleStyle.standard.headroom
     /// Minimum panel width while a bubble is showing.
-    static let bubbleMinWidth: CGFloat = 180
+    static let bubbleMinWidth: CGFloat = SpeechBubbleStyle.standard.minWidth
     /// Horizontal padding inside the bubble chrome (each side). Content + 2× this = `bubbleMinWidth`.
-    static let bubbleHorizontalPadding: CGFloat = 8
+    static let bubbleHorizontalPadding: CGFloat = SpeechBubbleStyle.standard.horizontalPadding
     /// Fixed text column — wraps instead of growing past the panel (`bubbleMinWidth` − 16).
-    static let bubbleContentWidth: CGFloat = bubbleMinWidth - (bubbleHorizontalPadding * 2)
+    static let bubbleContentWidth: CGFloat = SpeechBubbleStyle.standard.contentWidth
     /// `SpeechBubbleView` body `.lineLimit`. Measure and view must share this — a
     /// headroom-only guard stays green for 3-line copy that still fits 70pt (#167).
     static let bubbleBodyLineLimit = 2
@@ -130,35 +131,37 @@ final class FloatingPetController: NSObject, NSWindowDelegate {
         var isCritical: Bool
     }
 
-    static func bubbleContent(_ bubble: Bubble, l: L) -> SpeechBubbleContent {
+    static func bubbleContent(_ bubble: Bubble, l: L, style: SpeechBubbleStyle = .standard) -> SpeechBubbleContent {
         switch bubble {
         case .limit(let alert):
             let title = alert.isCritical ? l.notifCritical : l.notifWarning
-            return SpeechBubbleContent(title: title, body: bubbleBody(for: alert, title: title, l: l),
+            return SpeechBubbleContent(title: title, body: bubbleBody(for: alert, title: title, l: l, style: style),
                                        isCritical: alert.isCritical)
         case .agentWaiting(let label, let message, let others):
             let title = agentTitle(label: label, unlabeled: l.agentWaitingTitle, status: l.agentWaitingStatus,
-                                   count: others > 0 ? "+\(others)" : nil)
-            return agentContent(title: title, body: message ?? l.agentWaitingDefaultBody)
+                                   count: others > 0 ? "+\(others)" : nil, style: style)
+            return agentContent(title: title, body: message ?? l.agentWaitingDefaultBody, style: style)
         case .agentDone(let label, let message):
-            let title = agentTitle(label: label, unlabeled: l.agentDoneTitle, status: l.agentDoneStatus, count: nil)
-            return agentContent(title: title, body: message ?? l.agentDoneDefaultBody)
+            let title = agentTitle(label: label, unlabeled: l.agentDoneTitle, status: l.agentDoneStatus, count: nil,
+                                   style: style)
+            return agentContent(title: title, body: message ?? l.agentDoneDefaultBody, style: style)
         }
     }
 
-    private static func agentContent(title: String, body: String) -> SpeechBubbleContent {
-        SpeechBubbleContent(title: title, body: fittedBubbleBody(body, title: title), isCritical: false)
+    private static func agentContent(title: String, body: String, style: SpeechBubbleStyle) -> SpeechBubbleContent {
+        SpeechBubbleContent(title: title, body: fittedBubbleBody(body, title: title, style: style), isCritical: false)
     }
 
     /// "<label> · <status>" (or the plain title without a label), then "+N" more waiting agents.
     /// The count is digits in every language: words would take the room the label needs.
     /// The label — or the plain title — is cut with an ellipsis so the title stays on one line.
-    static func agentTitle(label: String?, unlabeled: String, status: String, count: String?) -> String {
+    static func agentTitle(label: String?, unlabeled: String, status: String, count: String?,
+                           style: SpeechBubbleStyle = .standard) -> String {
         let lead = label ?? unlabeled
         var suffix = label == nil ? "" : " · " + status
         if let count { suffix += " " + count }
         func fits(_ title: String) -> Bool {
-            measureSpeechBubbleLayout(title: title, body: "").unclampedTitleWidth <= bubbleContentWidth
+            measureSpeechBubbleLayout(title: title, body: "", style: style).unclampedTitleWidth <= style.contentWidth
         }
         guard !fits(lead + suffix) else { return lead + suffix }
         let characters = Array(lead)
@@ -177,8 +180,8 @@ final class FloatingPetController: NSObject, NSWindowDelegate {
     }
 
     /// Cut `text` with an ellipsis until it fits `bubbleBodyLineLimit`, so the view never clips it.
-    static func fittedBubbleBody(_ text: String, title: String) -> String {
-        guard measureSpeechBubbleLayout(title: title, body: text).wouldTruncate else { return text }
+    static func fittedBubbleBody(_ text: String, title: String, style: SpeechBubbleStyle = .standard) -> String {
+        guard measureSpeechBubbleLayout(title: title, body: text, style: style).wouldTruncate else { return text }
         let characters = Array(text)
         func ellipsized(_ count: Int) -> String {
             String(characters.prefix(count)).trimmingCharacters(in: .whitespaces) + "…"
@@ -187,7 +190,7 @@ final class FloatingPetController: NSObject, NSWindowDelegate {
         var low = 0, high = characters.count
         while high - low > 1 {
             let mid = (low + high) / 2
-            if measureSpeechBubbleLayout(title: title, body: ellipsized(mid)).wouldTruncate {
+            if measureSpeechBubbleLayout(title: title, body: ellipsized(mid), style: style).wouldTruncate {
                 high = mid
             } else {
                 low = mid
@@ -350,6 +353,9 @@ final class FloatingPetController: NSObject, NSWindowDelegate {
         withObservationTracking {
             _ = store.floatingPetEnabled
             _ = store.floatingPetSize
+            _ = store.floatingPetBubbleFontScale
+            _ = store.floatingPetBubbleFont
+            _ = store.floatingPetBubbleTheme
             _ = store.floatingPetAgentActivity
             _ = store.floatingPetAutoMotion
             _ = store.floatingPetMotions
@@ -573,7 +579,7 @@ final class FloatingPetController: NSObject, NSWindowDelegate {
     /// Leaves home for a spot next to the cursor and returns the panel frame to animate to.
     func beginRun(cursor: NSPoint, visibleFrame: NSRect) -> NSRect {
         let petSize = CGFloat(store.floatingPetSize)
-        let size = Self.panelSize(petSize: petSize, showingBubble: true)
+        let size = Self.panelSize(petSize: petSize, showingBubble: true, style: bubbleStyle)
         let origin = Self.runPanelOrigin(cursor: cursor, panelSize: size, visibleFrame: visibleFrame)
         stopIdleMotions()
         wanderOffsetX = 0   // the way back ends at the real home
@@ -643,10 +649,10 @@ final class FloatingPetController: NSObject, NSWindowDelegate {
     }
 
     /// Panel size for a given pet size and bubble visibility. Pure — tested without AppKit layout.
-    static func panelSize(petSize: CGFloat, showingBubble: Bool) -> NSSize {
+    static func panelSize(petSize: CGFloat, showingBubble: Bool, style: SpeechBubbleStyle = .standard) -> NSSize {
         if showingBubble {
-            return NSSize(width: max(petSize, bubbleMinWidth),
-                          height: petSize + bubbleHeadroom)
+            return NSSize(width: max(petSize, style.minWidth),
+                          height: petSize + style.headroom)
         }
         return NSSize(width: petSize, height: petSize)
     }
@@ -664,24 +670,27 @@ final class FloatingPetController: NSObject, NSWindowDelegate {
     /// Measure speech-bubble chrome for a title/body at the fixed content width (wrapping).
     /// Pure AppKit typography — keeps the layout test free of SwiftUI hosting.
     /// The alert text, with its Claude account only when it still fits: the percentage matters more.
-    static func bubbleBody(for alert: UsageStore.LimitAlert, title: String, l: L) -> String {
+    static func bubbleBody(for alert: UsageStore.LimitAlert, title: String, l: L,
+                           style: SpeechBubbleStyle = .standard) -> String {
         let full = alert.body(l)
-        guard alert.account != nil, measureSpeechBubbleLayout(title: title, body: full).wouldTruncate else { return full }
+        guard alert.account != nil,
+              measureSpeechBubbleLayout(title: title, body: full, style: style).wouldTruncate else { return full }
         return alert.body(l, withAccount: false)
     }
 
     static func measureSpeechBubble(title: String, body: String,
-                                    contentWidth: CGFloat = bubbleContentWidth) -> NSSize {
-        measureSpeechBubbleLayout(title: title, body: body, contentWidth: contentWidth).size
+                                    style: SpeechBubbleStyle = .standard) -> NSSize {
+        measureSpeechBubbleLayout(title: title, body: body, style: style).size
     }
 
     /// Layout the view draws: unconstrained chrome (`size`) plus wrap count and
     /// single-line widths. `size.width` is clamped to the column (cannot fail a
     /// `≤ panel.width` assert); `unclamped*Width` is the check that can.
     static func measureSpeechBubbleLayout(title: String, body: String,
-                                          contentWidth: CGFloat = bubbleContentWidth) -> SpeechBubbleLayout {
-        let titleFont = NSFont.systemFont(ofSize: 11, weight: .bold)
-        let bodyFont = NSFont.systemFont(ofSize: 10)
+                                          style: SpeechBubbleStyle = .standard) -> SpeechBubbleLayout {
+        let contentWidth = style.contentWidth
+        let titleFont = style.titleFont
+        let bodyFont = style.bodyFont
         let wrap = NSSize(width: contentWidth, height: 10_000)
         let unclamped = NSSize(width: CGFloat.greatestFiniteMagnitude, height: 10_000)
         let opts: NSString.DrawingOptions = [.usesLineFragmentOrigin, .usesFontLeading]
@@ -694,12 +703,12 @@ final class FloatingPetController: NSObject, NSWindowDelegate {
         let unclampedBody = (body as NSString).boundingRect(
             with: unclamped, options: opts, attributes: [.font: bodyFont])
         let textWidth = min(contentWidth, max(titleRect.width, bodyRect.width))
-        let textHeight = ceil(titleRect.height) + 2 + ceil(bodyRect.height)
-        // Match SpeechBubbleView: horizontal padding ×2, vertical 6, bottom pad 6 for the tail.
-        let hPad = bubbleHorizontalPadding * 2
+        let textHeight = ceil(titleRect.height) + style.titleSpacing + ceil(bodyRect.height)
+        // Match SpeechBubbleView: horizontal padding ×2, vertical padding ×2, bottom pad for the tail.
+        let hPad = style.horizontalPadding * 2
         let bodyLineCount = wrappedLineCount(body, font: bodyFont, width: contentWidth)
         return SpeechBubbleLayout(
-            size: NSSize(width: textWidth + hPad, height: textHeight + 12 + 6),
+            size: NSSize(width: textWidth + hPad, height: textHeight + style.verticalPadding * 2 + style.tailBase),
             bodyLineCount: bodyLineCount,
             unclampedTitleWidth: unclampedTitle.width,
             unclampedBodyWidth: unclampedBody.width,
@@ -724,6 +733,9 @@ final class FloatingPetController: NSObject, NSWindowDelegate {
         guard store.floatingPetEnabled, displayAwake else { hide(); return }
         show()
     }
+
+    /// Bubble font and colors from Settings; the font follows the pet size.
+    private var bubbleStyle: SpeechBubbleStyle { store.speechBubbleStyle }
 
     private var showingBubble: Bool {
         Self.isShowingBubble(alertActive: store.currentBubbleAlert != nil, heartsShowing: hearts.isShowing,
@@ -904,7 +916,7 @@ final class FloatingPetController: NSObject, NSWindowDelegate {
     }
 
     private func targetFrame(petSize: CGFloat, showingBubble: Bool, includeWander: Bool = true) -> NSRect {
-        var size = Self.panelSize(petSize: petSize, showingBubble: showingBubble)
+        var size = Self.panelSize(petSize: petSize, showingBubble: showingBubble, style: bubbleStyle)
         if !showingBubble { size.height += hopHeadroom }
         var petOrigin: NSPoint
         if runPhase == .away, let awayPetOrigin {
@@ -986,7 +998,7 @@ final class FloatingPetController: NSObject, NSWindowDelegate {
         }
         guard move.persist else { return }
         let petSize = CGFloat(store.floatingPetSize)
-        let size = Self.panelSize(petSize: petSize, showingBubble: showingBubble)
+        let size = Self.panelSize(petSize: petSize, showingBubble: showingBubble, style: bubbleStyle)
         let pet = Self.petOrigin(panelOrigin: panelOrigin, petSize: petSize, panelSize: size)
         defaults.set(Double(pet.x - wanderOffsetX), forKey: Self.originXKey)
         defaults.set(Double(pet.y), forKey: Self.originYKey)
@@ -1180,14 +1192,21 @@ struct FloatingPetView: View {
     var hearts = PetHeartState()
     @Environment(UsageStore.self) private var store
     @Environment(CompanionStore.self) private var companion
+    /// The sprite's visible top, so the speech bubble's tail reaches the pet instead of empty canvas.
+    @State private var spriteVisibleTop: CGFloat?
 
     var body: some View {
         let size = CGFloat(store.floatingPetSize)
         let subject = companion.representativeSubject
         let bubble = FloatingPetController.bubble(limitAlert: store.currentBubbleAlert, agent: agent.summary)
-        VStack(spacing: 8) {
+        let style = store.speechBubbleStyle
+        let tail = SpeechBubbleView.tailPlacement(style: style, visibleTop: spriteVisibleTop)
+        VStack(spacing: SpeechBubbleStyle.stackSpacing) {
             if let bubble {
-                SpeechBubbleView(content: FloatingPetController.bubbleContent(bubble, l: L(companion.language)))
+                SpeechBubbleView(content: FloatingPetController.bubbleContent(bubble, l: L(companion.language),
+                                                                              style: style),
+                                 style: style, tailLength: tail.length)
+                    .offset(y: tail.drop)
                     .transition(.scale(scale: 0.8, anchor: .bottom).combined(with: .opacity))
                     .zIndex(1)
             }
@@ -1228,6 +1247,9 @@ struct FloatingPetView: View {
                 // Keep the attached heart and prayer particles aligned with the bobbing sprite.
                 .modifier(PetIdleMotion(cue: agent.motionCue, petSize: size, facesBack: companion.facesBack))
                 .modifier(AgentBob(active: agent.bobs))
+                .onPreferenceChange(SpriteVisibleTopKey.self) { [setTop = $spriteVisibleTop] top in
+                    setTop.wrappedValue = top
+                }
                 .zIndex(0)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
@@ -1367,48 +1389,71 @@ private struct AgentBob: ViewModifier {
 
 /// Transient limit-alert or agent bubble. Width is capped so copy wraps instead of clipping the panel.
 @MainActor
-private struct SpeechBubbleView: View {
+struct SpeechBubbleView: View {
     let content: FloatingPetController.SpeechBubbleContent
+    var style: SpeechBubbleStyle = .standard
+    /// Distance from the bubble body's bottom edge to the tail tip. `style.tailBase` sits inside the
+    /// bubble's own bottom padding; anything longer reaches down toward the sprite.
+    var tailLength: CGFloat? = nil
+
+    /// Where the bubble sits over the sprite: the tail tip ends `clearance` pt above the sprite's
+    /// visible top (`visibleTop` pt under the sprite box). The tail grows by up to `style.tailReach`;
+    /// the rest of the empty canvas is closed by moving the whole bubble down (`drop`), so the bubble
+    /// hugs the pet instead of growing a spike. Bubble and sprite share the center axis, so a
+    /// centered tail points at the pet.
+    struct TailPlacement: Equatable {
+        var length: CGFloat
+        var drop: CGFloat
+    }
+
+    static func tailPlacement(style: SpeechBubbleStyle, visibleTop: CGFloat?,
+                              clearance: CGFloat = 2) -> TailPlacement {
+        let gap = max(0, SpeechBubbleStyle.stackSpacing + max(0, visibleTop ?? 0) - clearance)
+        let extra = min(gap, style.tailReach)
+        return TailPlacement(length: style.tailBase + extra, drop: (gap - extra).rounded(.down))
+    }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 2) {
+        let palette = style.theme.palette
+        let shape = SpeechBubbleShape(cornerRadius: style.cornerRadius, tailWidth: style.tailWidth,
+                                      tailHeight: max(style.tailBase, tailLength ?? style.tailBase))
+        VStack(alignment: .leading, spacing: style.titleSpacing) {
             Text(content.title)
-                .font(.system(size: 11, weight: .bold))
-                .foregroundColor(content.isCritical ? .red : .primary)
+                .font(.system(size: style.titleSize, weight: .bold, design: style.design.swiftUI))
+                .foregroundColor(Color(nsColor: content.isCritical ? palette.critical : palette.title))
             Text(content.body)
-                .font(.system(size: 10))
-                .foregroundColor(.secondary)
+                .font(.system(size: style.bodySize, design: style.design.swiftUI))
+                .foregroundColor(Color(nsColor: palette.body))
                 .lineLimit(FloatingPetController.bubbleBodyLineLimit)
                 .fixedSize(horizontal: false, vertical: true)
         }
-        .frame(width: FloatingPetController.bubbleContentWidth, alignment: .leading)
-        .padding(.horizontal, FloatingPetController.bubbleHorizontalPadding)
-        .padding(.vertical, 6)
+        .frame(width: style.contentWidth, alignment: .leading)
+        .padding(.horizontal, style.horizontalPadding)
+        .padding(.vertical, style.verticalPadding)
         .background(
-            SpeechBubbleShape()
-                .fill(Color(nsColor: .windowBackgroundColor))
+            shape
+                .fill(Color(nsColor: palette.background))
                 .shadow(color: .black.opacity(0.15), radius: 4, y: 2)
                 .overlay(
-                    // The fill matches terminal backgrounds, so a 1 pt dotted outline keeps the bubble apart.
-                    SpeechBubbleShape()
-                        .stroke(Color.secondary,
-                                style: StrokeStyle(lineWidth: 1, lineCap: .round, dash: [0.1, 2.5]))
+                    // The default fill matches terminal backgrounds, so a 1 pt dotted outline keeps the bubble apart.
+                    shape.stroke(Color(nsColor: palette.border),
+                                 style: StrokeStyle(lineWidth: 1, lineCap: .round, dash: [0.1, 2.5]))
                 )
         )
-        .padding(.bottom, 6)
+        .padding(.bottom, style.tailBase)
     }
 }
 
-/// Rounded bubble with its tail below the bottom-left edge, drawn as one outline so a stroke
-/// runs around the tail too. The tail hangs into the 6 pt bottom padding of `SpeechBubbleView`.
+/// Rounded bubble with its tail centered under the bottom edge, drawn as one outline so a stroke
+/// runs around the tail too. The tail starts in the bubble's bottom padding and may reach past it.
 struct SpeechBubbleShape: Shape {
     var cornerRadius: CGFloat = 12
-    var tailLeft: CGFloat = 10
     var tailWidth: CGFloat = 10
     var tailHeight: CGFloat = 6
 
     func path(in rect: CGRect) -> Path {
         let r = min(cornerRadius, rect.height / 2, rect.width / 2)
+        let half = min(tailWidth / 2, max(0, rect.width / 2 - r))
         var path = Path()
         path.move(to: CGPoint(x: rect.minX + r, y: rect.minY))
         path.addLine(to: CGPoint(x: rect.maxX - r, y: rect.minY))
@@ -1417,9 +1462,9 @@ struct SpeechBubbleShape: Shape {
         path.addLine(to: CGPoint(x: rect.maxX, y: rect.maxY - r))
         path.addArc(tangent1End: CGPoint(x: rect.maxX, y: rect.maxY),
                     tangent2End: CGPoint(x: rect.maxX - r, y: rect.maxY), radius: r)
-        path.addLine(to: CGPoint(x: rect.minX + tailLeft + tailWidth, y: rect.maxY))
-        path.addLine(to: CGPoint(x: rect.minX + tailLeft + tailWidth / 2, y: rect.maxY + tailHeight))
-        path.addLine(to: CGPoint(x: rect.minX + tailLeft, y: rect.maxY))
+        path.addLine(to: CGPoint(x: rect.midX + half, y: rect.maxY))
+        path.addLine(to: CGPoint(x: rect.midX, y: rect.maxY + tailHeight))
+        path.addLine(to: CGPoint(x: rect.midX - half, y: rect.maxY))
         path.addLine(to: CGPoint(x: rect.minX + r, y: rect.maxY))
         path.addArc(tangent1End: CGPoint(x: rect.minX, y: rect.maxY),
                     tangent2End: CGPoint(x: rect.minX, y: rect.maxY - r), radius: r)

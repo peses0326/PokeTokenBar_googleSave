@@ -51,6 +51,8 @@ final class CompanionStore {
     private let fileURL: URL
     private var rng: any RandomNumberGenerator
     private let dittoDisguiseRollingEnabled: Bool
+    /// PokeTokenBar_gs: an egg never hatches a line that already hatched (see `chooseBase`).
+    private let skipsAppearedLines: Bool
     private(set) var pokemonDetailsByID: [Int: PokemonDetails] = [:]
     private(set) var loadingPokemonDetailIDs: Set<Int> = []
     private(set) var failedPokemonDetailIDs: Set<Int> = []
@@ -78,6 +80,7 @@ final class CompanionStore {
          fileURL: URL? = nil,
          rng: any RandomNumberGenerator = SystemRandomNumberGenerator(),
          dittoDisguiseRollingEnabled: Bool = AppEnv.isBundledApp,
+         skipsAppearedLines: Bool = AppEnv.isGoogleSaveVersion,
          defaults: UserDefaults = .standard) {
         self.provider = provider
         self.detailProvider = detailProvider ?? (provider as? any PokemonDetailProviding)
@@ -85,6 +88,7 @@ final class CompanionStore {
         self.fileURL = fileURL ?? Self.defaultURL()
         self.rng = rng
         self.dittoDisguiseRollingEnabled = dittoDisguiseRollingEnabled
+        self.skipsAppearedLines = skipsAppearedLines
         self.defaults = defaults
         let storedGrowth = defaults.object(forKey: "growthDifficulty") as? Double ?? PokemonBalance.defaultDifficulty
         // Previous releases accepted 0.01%–2000%. Reprice their banked progress before
@@ -1925,7 +1929,8 @@ final class CompanionStore {
     /// 부화 종 선정 — 하드코딩 풀 없이 PokéAPI 1~5세대 base 전체(329종)에서 가중 선택.
     ///   ① base 인덱스(id + capture_rate)를 GraphQL 1쿼리로 취득(30일 디스크 캐시 → 보통 0콜)
     ///   ② 가중치 = 공식 capture_rate 그대로(캐터피 255 vs 뮤츠 3 = 85:1, 전설군 ≈ 0.77%)
-    ///      단, 이미 수집한 base 는 가중치 ½(미수집 부스트 — 재부화/shiny 사냥은 열어둠)
+    ///      단, 이미 수집한 base 는 가중치 ½(미수집 부스트 — 재부화/shiny 사냥은 열어둠).
+    ///      PokeTokenBar_gs(`skipsAppearedLines`)는 이미 부화한 base 를 아예 뺀다(모두 나왔을 때만 다시 허용).
     ///   ③ 누적 가중치에서 정확히 1롤 — 루프/재롤 없음, 시간 상한 확정적
     /// 인덱스 취득 실패(오프라인 + 캐시 없음) 시 nil → 알 유지, 다음 갱신 틱 재시도.
     private func chooseBase() async -> Int? {
@@ -1939,16 +1944,20 @@ final class CompanionStore {
                 AppLog.write("hatch: no candidate for guaranteed \(tier?.rawValue ?? "none") — egg kept, retry next tick")
                 return nil
             }
-            let weights = index.map { e in
+            // PokeTokenBar_gs: a line that already hatched never hatches again while any other candidate
+            // is left. Only when every candidate has appeared do repeats come back, so the egg never sticks.
+            let unseen = skipsAppearedLines ? index.filter { !state.hasAppeared(baseID: $0.id) } : index
+            let pool = unseen.isEmpty ? index : unseen
+            let weights = pool.map { e in
                 CollectionWeight.adjusted(e.captureRate, isCollected: state.hasCollectedFinal(forBaseID: e.id))
             }
             let total = weights.reduce(0, +)
             var r = Int(rng.next() % UInt64(total))
             for (i, w) in weights.enumerated() {
                 r -= w
-                if r < 0 { return index[i].id }
+                if r < 0 { return pool[i].id }
             }
-            return index.last?.id   // 도달 불가(방어)
+            return pool.last?.id   // 도달 불가(방어)
         }
         // GraphQL base 인덱스 엔드포인트 장애 → REST 폴백. 부화가 한 엔드포인트에 묶이지 않게.
         AppLog.write("hatch: base index unavailable — REST fallback")
@@ -1968,6 +1977,9 @@ final class CompanionStore {
                     // 등급 보증은 가중 경로와 **같은 기준**으로 여기서도 걸러야 한다 — 이 폴백만 빠지면
                     // GraphQL 인덱스 장애 때 보증이 조용히 깨진다. 못 찾으면 알 유지(구매 소멸 금지).
                     if let tier, !tier.includes(captureRate: bs.captureRate) { continue }
+                    // Same rule as the weighted path: skip lines that already hatched; the last tries
+                    // accept them so a nearly complete Pokédex still hatches.
+                    if skipsAppearedLines, attempt <= 12, state.hasAppeared(baseID: id) { continue }
                     AppLog.write("hatch: REST fallback picked base \(id) (cap \(bs.captureRate), \(attempt) tries)")
                     return id
                 }

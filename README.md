@@ -19,6 +19,8 @@ Everything below this section is the original README.
 | App identity | `PokeTokenBar.app` | `PokeTokenBar_gs.app` with its own Poké Ball icon, bundle id, data folder and `poketokenbar-gs://` agent URL scheme, installs alongside the original |
 | Usage from other computers | Only the Mac running the app counts | A Linux server or any other computer runs `ptb`, which uploads its daily token totals; the Mac grows the companion with them |
 | Egg prices | 1B / 2.5B / 4B | 700M / 1.75B / 2.8B (30% off) |
+| Growth per stage | Common 750M, uncommon 1.875B, rare 3B, legendary 6B to graduate (× growth difficulty) | 40% less for every stage: 450M / 1.125B / 1.8B / 3.6B (on *Easy* 10%, a 100M step takes 60M) |
+| Species from eggs | Already collected lines come back at half weight | A line that already hatched (graduated, released or being raised) never hatches again; repeats return only after every candidate has hatched |
 
 Everything else (menu bar, popover, settings, login launch) is the original code, based on upstream v2.5.7. The `_gs` build skips the update check, because an update would install the original app instead.
 

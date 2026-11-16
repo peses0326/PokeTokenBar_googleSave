@@ -24,6 +24,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
     private var companion: CompanionStore!
     private var updater: UpdateChecker!
     private var cloudSync: GoogleCloudSync!
+    /// PokeTokenBar_gs daily self-update (nil in the original build).
+    private var gsUpdater: GSAutoUpdater?
     private var floatingPet: FloatingPetController!
     private let navigation = PopoverNavigation()
 
@@ -111,6 +113,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         // The Google sync build installs beside the original app. Its update banner would point at the
         // original release (and `brew upgrade` would replace the original cask), so it does not check.
         updater = AppEnv.isGoogleSaveVersion ? UpdateChecker(fetchLatest: { nil }) : UpdateChecker()
+        // It updates itself from this fork's releases instead (once a day, Settings → Updates).
+        gsUpdater = AppEnv.isGoogleSaveVersion && AppEnv.isBundledApp ? GSAutoUpdater() : nil
         store.localizationLanguage = companion.language   // 알림 현지화용 미러 시드
         store.onRefresh = { [weak self] in self?.onStoreRefreshed() }   // 한도 로드 후 companion·사탕 지급
         floatingPet = FloatingPetController(
@@ -291,6 +295,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         updateCompanion()
         companion.grantCandies(from: store.candyEligibleWindows, limitsReady: store.limitsReady)
         cloudSync.syncIfDue(companion: companion, usage: store)
+        if let gsUpdater { Task { await gsUpdater.runIfDue() } }
     }
 
     // MARK: 메뉴바 애니메이션
@@ -592,7 +597,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
 
     private func buildPopoverContent() {
         popover.contentViewController = NSHostingController(
-            rootView: PopoverView(cloudSync: cloudSync)
+            rootView: PopoverView(cloudSync: cloudSync, gsUpdater: gsUpdater)
                 .environment(store).environment(companion).environment(updater).environment(navigation))
     }
 

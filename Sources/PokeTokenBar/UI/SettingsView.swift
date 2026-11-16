@@ -14,6 +14,8 @@ struct SettingsView: View {
     /// 접힌 채로 열면 고칠 입력란이 안 보여 안내가 막다른 길이 된다.
     var startExpanded = false
     var cloudSync: GoogleCloudSync? = nil
+    /// PokeTokenBar_gs only: replaces the original update section.
+    var gsUpdater: GSAutoUpdater? = nil
     @State private var launchAtLoginEnabled = false
     @State private var launchAtLoginNeedsApproval = false
     @State private var launchAtLoginError: Error?
@@ -78,7 +80,7 @@ struct SettingsView: View {
                         trackedProvidersGroup(store)
                         floatingPetGroup(store)
                         notificationsGroup(store)
-                        updateGroup(store)
+                        if let gsUpdater { gsUpdateGroup(gsUpdater) } else { updateGroup(store) }
                         if let cloudSync { GoogleSyncSettingsView(sync: cloudSync, companion: companion, usage: store) }
                         transferGroup(store)
                         advancedGroup(store)
@@ -596,6 +598,55 @@ struct SettingsView: View {
                     }
                 }
             }
+        }
+    }
+
+    /// PokeTokenBar_gs updates: a daily automatic install that can be turned off, plus *Check now*.
+    @ViewBuilder
+    private func gsUpdateGroup(_ updater: GSAutoUpdater) -> some View {
+        @Bindable var updater = updater
+        settingsSection(l.updateSectionTitle) {
+            groupRow {
+                Toggle(isOn: $updater.isEnabled) {
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(l.gsAutoUpdateLabel)
+                        Text(l.gsAutoUpdateHint).font(.caption2).foregroundStyle(.tertiary)
+                    }
+                }
+                .toggleStyle(.checkbox)
+                Spacer()
+            }
+            Divider()
+            groupRow {
+                Text(l.checkForUpdatesLabel)
+                Spacer()
+                Button {
+                    Task { await updater.checkNow() }
+                } label: {
+                    if updater.status == .checking {
+                        ProgressView().controlSize(.small)
+                    } else {
+                        Text(l.checkNowButton)
+                    }
+                }
+                .disabled(updater.status == .checking)
+            }
+            if let line = gsUpdateStatusLine(updater.status) {
+                Divider()
+                groupRow {
+                    Text(line.text).font(.caption).foregroundStyle(line.color)
+                    Spacer()
+                }
+            }
+        }
+    }
+
+    private func gsUpdateStatusLine(_ status: GSAutoUpdater.Status) -> (text: String, color: Color)? {
+        switch status {
+        case .idle, .checking: return nil
+        case .upToDate(let version): return (l.upToDate(version), .secondary)
+        case .installing(let version): return (l.gsUpdateInstalling(version), .orange)
+        case .failed: return (l.gsUpdateFailed, .red)
         }
     }
 

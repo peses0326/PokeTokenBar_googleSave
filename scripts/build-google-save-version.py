@@ -43,8 +43,8 @@ def main():
     resources = app / "Contents/Resources"
     resources.mkdir(parents=True)
     shutil.copy2(products / "PokeTokenBar", executable)
-    # Egg app icon of this build (scripts/generate-gs-icns.sh); the original app keeps assets/AppIcon.icns.
-    shutil.copy2(repo / "assets/googlesave/AppIcon.icns", resources / "AppIcon.icns")
+    # Egg app icon (scripts/generate-gs-icns.sh).
+    shutil.copy2(repo / "assets/AppIcon.icns", resources / "AppIcon.icns")
     bundle = products / "PokeTokenBar_PokeTokenBar.bundle"
     if not bundle.is_dir():
         raise RuntimeError("Cloud helper resource bundle missing; rebuild the package")

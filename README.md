@@ -21,8 +21,9 @@ Everything below this section is the original README.
 | Egg prices | 1B / 2.5B / 4B | 700M / 1.75B / 2.8B (30% off) |
 | Growth per stage | Common 750M, uncommon 1.875B, rare 3B, legendary 6B to graduate (× growth difficulty) | 40% less for every stage: 450M / 1.125B / 1.8B / 3.6B (on *Easy* 10%, a 100M step takes 60M) |
 | Species from eggs | Already collected lines come back at half weight | A line that already hatched (graduated, released or being raised) never hatches again; repeats return only after every candidate has hatched |
+| Updates | Banner, then `brew upgrade` or the release page | Settings → Updates → *Automatic updates* (on by default): once a day it checks this fork's latest release, downloads `PokeTokenBar_gs.zip`, verifies GitHub's SHA-256 digest, the bundle id, version and signature, swaps the app and relaunches. *Check now* runs it immediately |
 
-Everything else (menu bar, popover, settings, login launch) is the original code, based on upstream v2.5.7. The `_gs` build skips the update check, because an update would install the original app instead.
+Everything else (menu bar, popover, settings, login launch) is the original code, based on upstream v2.5.7. The `_gs` build does not use the original update check (it would install the original app); it updates itself from this fork's releases instead.
 
 **Idle motions.** Settings → Floating Pet → *Auto motion*. Each motion has its own checkbox. *Frequency* sets how often the pet moves (level 1 ≈ every 15–35 s, level 2 = default ≈ 8–20 s, level 5 ≈ 1.5–4 s). *Range* sets how far a walk may wander from where you placed the pet (about 0.75 to 6 pet widths). The pet always walks back toward its home spot, never leaves the screen, and stops a walk when you drag it. Motions pause under macOS *Reduce motion* or Low Power Mode.
 

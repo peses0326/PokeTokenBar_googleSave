@@ -86,6 +86,7 @@ final class PopoverNavigation {
 @MainActor
 struct PopoverView: View {
     var cloudSync: GoogleCloudSync? = nil
+    var gsUpdater: GSAutoUpdater? = nil
     @Environment(UsageStore.self) private var store
     @Environment(CompanionStore.self) private var companion
     @Environment(UpdateChecker.self) private var updater
@@ -107,7 +108,8 @@ struct PopoverView: View {
                     },
                     onChooseRepresentative: { nav.openRepresentativeDex() },
                     startExpanded: nav.expandAdvancedOnOpen,
-                    cloudSync: cloudSync
+                    cloudSync: cloudSync,
+                    gsUpdater: gsUpdater
                 )
                     .environment(store)
                     .environment(companion)

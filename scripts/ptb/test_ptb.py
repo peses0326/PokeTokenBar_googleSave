@@ -61,13 +61,13 @@ class PtbTests(unittest.TestCase):
 
     def test_push_uploads_daily_totals_and_updates_the_same_file(self):
         root = self.claude_log(100)
-        self.ptb.save_config({"timezone": "Asia/Seoul", "deviceName": "parkes-server", "claudeRoots": [str(root)]})
+        self.ptb.save_config({"timezone": "Asia/Seoul", "deviceName": "my-server", "claudeRoots": [str(root)]})
         self.run_cli("push")
         self.claude_log(50, "m2")
         self.run_cli("push", "--quiet")
         files = [(m, v) for m, v in self.google.store.values() if m["appProperties"]["ptbKind"] == "usage-v1"]
         self.assertEqual(len(files), 1)
-        self.assertEqual(files[0][0]["name"], "PokeTokenBar-Usage-parkes-server.json")
+        self.assertEqual(files[0][0]["name"], "PokeTokenBar-Usage-my-server.json")
         self.assertEqual(files[0][1]["days"], {"2026-11-13": {"claude": 150}})
 
     def test_push_refuses_on_a_mac_running_the_app(self):
@@ -131,14 +131,14 @@ class PtbTests(unittest.TestCase):
 
         fake_home = Path(self.temp.name) / "home"
         with patch.object(self.ptb.subprocess, "run", fake_run), patch.dict(os.environ, {"HOME": str(fake_home)}):
-            self.run_cli("install", "--name", "parkes-server")
+            self.run_cli("install", "--name", "my-server")
             self.run_cli("install", "--interval", "15")
         lines = crontab["text"].strip().splitlines()
         self.assertEqual(lines[0], "0 1 * * * backup.sh")
         self.assertEqual(sum(self.ptb.CRON_MARK in l for l in lines), 1)
         self.assertTrue(lines[1].startswith("*/15 "))
         self.assertTrue((fake_home / ".local/bin/ptb").exists())
-        self.assertEqual(self.ptb.config()["deviceName"], "parkes-server")
+        self.assertEqual(self.ptb.config()["deviceName"], "my-server")
 
 
 if __name__ == "__main__":

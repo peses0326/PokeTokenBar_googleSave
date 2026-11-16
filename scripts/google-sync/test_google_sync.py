@@ -319,11 +319,11 @@ class UsageSummaryTests(unittest.TestCase):
                 if meta["appProperties"]["ptbKind"] == cloud.USAGE_KIND and not meta.get("trashed")]
 
     def test_each_device_rewrites_one_file_in_place(self):
-        cloud.usage_push(self.google, DEVICE_A, "parkes-server", {"2026-11-13": {"claude": 10}})
-        cloud.usage_push(self.google, DEVICE_A, "parkes-server", {"2026-11-13": {"claude": 25}})
+        cloud.usage_push(self.google, DEVICE_A, "my-server", {"2026-11-13": {"claude": 10}})
+        cloud.usage_push(self.google, DEVICE_A, "my-server", {"2026-11-13": {"claude": 25}})
         files = self.usage_files()
         self.assertEqual(len(files), 1)
-        self.assertEqual(files[0][0]["name"], "PokeTokenBar-Usage-parkes-server.json")
+        self.assertEqual(files[0][0]["name"], "PokeTokenBar-Usage-my-server.json")
         self.assertEqual(files[0][1]["days"], {"2026-11-13": {"claude": 25}})
         cloud.usage_push(self.google, DEVICE_B, "laptop", {"2026-11-13": {"codex": 5}})
         self.assertEqual(len(self.usage_files()), 2)

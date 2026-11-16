@@ -6,7 +6,7 @@ final class RemoteUsageTests: XCTestCase {
     private let server = "22222222-2222-4222-8222-222222222222"
 
     private func usage(_ days: [String: Int], device: String? = nil) -> RemoteDeviceUsage {
-        RemoteDeviceUsage(device: device ?? server, deviceName: "parkes-server", updatedAt: nil,
+        RemoteDeviceUsage(device: device ?? server, deviceName: "my-server", updatedAt: nil,
                           days: days.mapValues { ["claude": $0] })
     }
 
@@ -152,7 +152,7 @@ final class RemoteUsageTests: XCTestCase {
                 if arguments.contains("usage-list") {
                     if listFails { throw CloudSyncError.message("offline") }
                     return Data("""
-                    {"status":"ok","devices":[{"device":"\(server)","deviceName":"parkes-server",
+                    {"status":"ok","devices":[{"device":"\(server)","deviceName":"my-server",
                     "updatedAt":"x","days":{"\(today)":{"claude":\(tokens)}}}]}
                     """.utf8)
                 }
@@ -168,7 +168,7 @@ final class RemoteUsageTests: XCTestCase {
         await sync.synchronize(companion: companion, usage: usageStore)
         XCTAssertEqual(companion.state.usedSinceInstall, 300)
         XCTAssertEqual(uploadedLedgers, [100, 400], "the credit is in the save that is uploaded")
-        XCTAssertEqual(sync.remoteDevices.map(\.deviceName), ["parkes-server"])
+        XCTAssertEqual(sync.remoteDevices.map(\.deviceName), ["my-server"])
 
         listFails = true
         await sync.synchronize(companion: companion, usage: usageStore)

@@ -9,25 +9,23 @@
 
 </div>
 
-**원본과 다른 점**
+**주요 기능**
 
-| | 원본 PokeTokenBar | PokeTokenBar_gs |
-|---|---|---|
-| 세이브 동기화 | 세이브 파일 수동 내보내기/가져오기 | 내 Google Drive의 `PokeTokenBar_Save` 폴더에 자동 백업(`drive.file` 권한만 사용), 다른 Mac에서 이어 하기 |
-| 플로팅 펫 움직임 | 대기 중 움직임 없음(에이전트 작업 중에만 들썩임) | 하나씩 골라 켜는 자동 움직임(깡충 뛰기, 좌우로 돌아다니기, 두리번거리기, 흔들기, 통통 튀기, 좌우로 기울이기), 빈도와 이동 범위 1~5단계 |
-| 에이전트 작업 완료 후 펫 클릭 | 팝오버 열기 | 그 에이전트가 돌던 Terminal / iTerm2 탭을 앞으로 가져옴(아래 훅의 `app`/`tty` 파라미터 필요) |
-| 앱 구분 | `PokeTokenBar.app` | `PokeTokenBar_gs.app`: 몬스터볼 아이콘·번들 ID·데이터 폴더·에이전트 URL 스킴(`poketokenbar-gs://`)이 따로라 원본과 함께 설치 가능 |
-| 다른 컴퓨터 사용량 | 앱이 도는 Mac만 집계 | 리눅스 서버나 앱이 없는 컴퓨터에서 `ptb`가 날짜별 토큰 합계를 올리고, Mac이 그만큼 포켓몬을 키움 |
-| 알 가격 | 1B / 2.5B / 4B | 700M / 1.75B / 2.8B (30% 할인) |
-| 단계별 성장량 | 졸업까지 일반 750M, 고급 1.875B, 희귀 3B, 전설 6B (× 성장 난이도) | 모든 단계 40% 감소: 450M / 1.125B / 1.8B / 3.6B (*쉬움* 10%에서 100M 걸리던 단계가 60M) |
-| 알에서 나오는 종류 | 이미 수집한 라인도 절반 확률로 다시 나옴 | 한 번 부화한 라인(졸업·놓아줌·육성 중)은 다시 나오지 않음. 후보가 모두 나온 뒤에만 다시 나옴 |
-| 업데이트 | 배너 → `brew upgrade` 또는 릴리스 페이지 | 설정 → 업데이트 → *자동 업데이트*(기본 켜짐): 하루 한 번 이 포크의 최신 릴리스를 확인해 `PokeTokenBar_gs.zip`을 받고, GitHub SHA-256·번들 ID·버전·서명을 확인한 뒤 앱을 교체하고 다시 켭니다. *지금 확인*을 누르면 바로 실행 |
-
-그 밖의 메뉴바·팝오버·설정·로그인 시 실행 등은 모두 원본 코드(원본 v2.5.7 기준)를 그대로 따릅니다. 원본의 업데이트 확인은 원본 앱을 설치하므로 쓰지 않고, 대신 이 포크의 릴리스로 스스로 업데이트합니다.
+| 기능 | PokeTokenBar_gs |
+|---|---|
+| 세이브 동기화 | 내 Google Drive의 `PokeTokenBar_Save` 폴더에 자동 백업(`drive.file` 권한만 사용), 다른 Mac에서 이어 하기 |
+| 플로팅 펫 움직임 | 하나씩 골라 켜는 자동 움직임(깡충 뛰기, 좌우로 돌아다니기, 두리번거리기, 흔들기, 통통 튀기, 좌우로 기울이기), 빈도와 이동 범위 1~5단계 |
+| 에이전트 작업 완료 후 펫 클릭 | 그 에이전트가 돌던 Terminal / iTerm2 탭을 앞으로 가져옴(아래 훅의 `app`/`tty` 파라미터 필요) |
+| 앱 정보 | `PokeTokenBar_gs.app`: 몬스터볼 아이콘, 번들 ID `io.github.peses0326.poketokenbar-gs`, 데이터 폴더 `~/Library/Application Support/PokeTokenBar_gs/`, 에이전트 URL 스킴 `poketokenbar-gs://` |
+| 다른 컴퓨터 사용량 | 리눅스 서버나 앱이 없는 컴퓨터에서 `ptb`가 날짜별 토큰 합계를 올리고, Mac이 그만큼 포켓몬을 키움 |
+| 알 가격 | 700M / 1.75B / 2.8B |
+| 단계별 성장량 | 졸업까지 일반 450M, 고급 1.125B, 희귀 1.8B, 전설 3.6B를 단계별로 나눔 (× 성장 난이도: *쉬움*은 10%) |
+| 알에서 나오는 종류 | 한 번 부화한 라인(졸업·놓아줌·육성 중)은 다시 나오지 않음. 후보가 모두 나온 뒤에만 다시 나옴 |
+| 업데이트 | 설정 → 업데이트 → *자동 업데이트*(기본 켜짐): 하루 한 번 이 포크의 최신 릴리스를 확인해 `PokeTokenBar_gs.zip`을 받고, GitHub SHA-256·번들 ID·버전·서명을 확인한 뒤 앱을 교체하고 다시 켭니다. *지금 확인*을 누르면 바로 실행 |
 
 **자동 움직임.** 설정 → 플로팅 펫 → *자동 움직임*. 동작마다 체크박스가 있습니다. *빈도*는 얼마나 자주 움직일지(1단계 약 15~35초, 기본 2단계 약 8~20초, 5단계 약 1.5~4초), *이동 범위*는 걷기가 펫을 놓아둔 자리에서 얼마나 멀리 갈 수 있는지(펫 너비의 약 0.75~6배)를 정합니다. 펫은 늘 제자리 쪽으로 돌아오고 화면 밖으로 나가지 않으며, 드래그하면 걷기를 멈춥니다. macOS *동작 줄이기*나 저전력 모드에서는 움직이지 않습니다.
 
-**설치.** [최신 릴리스](https://github.com/peses0326/PokeTokenBar_googleSave/releases/latest)에서 `PokeTokenBar_gs.zip`을 받아 압축을 풀고 `PokeTokenBar_gs.app`을 `/Applications`로 옮기세요. 공증(notarization)을 받지 않은 앱이라 처음 실행이 막힙니다. 시스템 설정 → 개인정보 보호 및 보안에서 *그래도 열기*를 누르세요(또는 `xattr -dr com.apple.quarantine /Applications/PokeTokenBar_gs.app` 실행). Apple Silicon, macOS 14 이상. 원본 앱과 함께 설치됩니다.
+**설치.** [최신 릴리스](https://github.com/peses0326/PokeTokenBar_googleSave/releases/latest)에서 `PokeTokenBar_gs.zip`을 받아 압축을 풀고 `PokeTokenBar_gs.app`을 `/Applications`로 옮기세요. 공증(notarization)을 받지 않은 앱이라 처음 실행이 막힙니다. 시스템 설정 → 개인정보 보호 및 보안에서 *그래도 열기*를 누르세요(또는 `xattr -dr com.apple.quarantine /Applications/PokeTokenBar_gs.app` 실행). Apple Silicon, macOS 14 이상.
 
 **Google Drive 동기화**
 
@@ -41,7 +39,7 @@
 - **어디에.** 내 Drive의 `PokeTokenBar_Save` 폴더에 리비전마다 작은 JSON 파일 하나. 설정의 *내 Drive의 세이브 폴더 열기*로 볼 수 있습니다. 파일 이름은 `PokeTokenBar-Save-<기기명>-<날짜>_<시각>-<ID>.json`이고, 기기마다 현재 세이브와 백업 1개, 이렇게 2개만 남기고 자기가 쓴 더 오래된 것은 Drive 휴지통으로 옮깁니다.
 - **언제.** 앱이 실행 중일 때 사용량 새로고침 뒤 최대 30분에 한 번, 그리고 *지금 동기화*를 누를 때. 한 번 동기화할 때 짧은 Python 프로세스 하나(`python3` 3.9 이상 필요, 예: Xcode Command Line Tools)가 폴더 목록을 확인하고 게임이 바뀌었을 때만 올리므로 CPU·배터리·네트워크 부담은 무시할 수준입니다.
 - **충돌.** 리비전은 시각이 아니라 벡터 클록으로 순서를 판단합니다. 두 Mac이 마지막 동기화 이후 각자 진행했다면 아무것도 덮어쓰지 않고 어느 세이브로 이어 갈지 묻습니다. 교체 전에는 로컬 백업을 만들고, 두 세이브의 아이템·경험치를 합치지는 않습니다. 한 번에 한 Mac만 쓰면 생기지 않습니다.
-- **개발자 서버 없음.** 앱은 구글(로그인, 그리고 *내* Drive의 `PokeTokenBar_Save` 폴더)과 *개인정보 & 권한*에 적힌 원본 앱의 호스트하고만 통신합니다. PokeTokenBar_gs 서버는 없어서 개발자에게 보내는 데이터가 없고, 개발자는 내 Drive를 볼 수 없습니다. 로그인 토큰은 이 Mac에만 저장됩니다(`~/Library/Application Support/PokeTokenBar_gs/google-sync/`, 본인만 읽을 수 있음). 설정에서 로그아웃하면 지워지고, [myaccount.google.com/permissions](https://myaccount.google.com/permissions)에서 접근 권한을 해제할 수도 있습니다.
+- **개발자 서버 없음.** 앱은 구글(로그인, 그리고 *내* Drive의 `PokeTokenBar_Save` 폴더)과 *개인정보 & 권한*에 적힌 호스트하고만 통신합니다. PokeTokenBar_gs 서버는 없어서 개발자에게 보내는 데이터가 없고, 개발자는 내 Drive를 볼 수 없습니다. 로그인 토큰은 이 Mac에만 저장됩니다(`~/Library/Application Support/PokeTokenBar_gs/google-sync/`, 본인만 읽을 수 있음). 설정에서 로그아웃하면 지워지고, [myaccount.google.com/permissions](https://myaccount.google.com/permissions)에서 접근 권한을 해제할 수도 있습니다.
 
 **두 번째 Mac, 개인 서버, 다른 컴퓨터**
 

@@ -17,6 +17,7 @@ Everything below this section is the original README.
 | Floating pet motion | No idle motion (bobs only while an agent works) | Idle motions you pick one by one (hop, walk around, look around, wiggle, bounce, sway), with frequency and walking range from 1 to 5 |
 | Clicking the pet after an agent finishes | Opens the popover | Brings that agent's Terminal / iTerm2 tab to the front (needs the `app`/`tty` hook parameters below) |
 | App identity | `PokeTokenBar.app` | `PokeTokenBar_gs.app` with its own bundle id, data folder and `poketokenbar-gs://` agent URL scheme, installs alongside the original |
+| Usage from other computers | Only the Mac running the app counts | A Linux server or any other computer runs `ptb`, which uploads its daily token totals; the Mac grows the companion with them |
 | Egg prices | 1B / 2.5B / 4B | 700M / 1.75B / 2.8B (30% off) |
 
 Everything else (menu bar, popover, settings, login launch) is the original code, based on upstream v2.5.7. The `_gs` build skips the update check, because an update would install the original app instead.
@@ -31,10 +32,39 @@ Everything else (menu bar, popover, settings, login launch) is the original code
 
 How it works:
 
-- **What is synced.** The game save (companion, Pokédex, eggs, items, candies) plus growth/shop difficulty. App settings stay per Mac. Usage logs and token history are never uploaded; each Mac grows the companion from its own local logs.
+- **What is synced.** The game save (companion, Pokédex, eggs, items, candies) plus growth/shop difficulty. App settings stay per Mac. Each Mac counts its own local logs; logs and prompts are never uploaded. Computers without the app upload only daily token totals (see below).
 - **Where.** One small JSON file per revision in `PokeTokenBar_Save` in your own Drive. *Open my Drive save folder* in Settings shows it. Files are named `PokeTokenBar-Save-<device>-<date>_<time>-<id>.json`; each device keeps two: its current save and one backup. Older ones it wrote go to the Drive trash.
 - **When.** After the usage refresh, at most once every 30 minutes while the app runs, plus *Sync now*. A sync starts one short Python process (`python3` 3.9+ must be installed, e.g. via Xcode Command Line Tools), lists the folder and uploads only if the game changed, so the CPU, battery and network cost is negligible.
 - **Conflicts.** Revisions carry vector clocks, not timestamps. If two Macs both progressed since their last sync, nothing is overwritten: the app asks which save to continue, keeps a local backup before replacing anything, and never adds the two saves' items or experience together. Using one Mac at a time avoids this entirely.
+
+**Second Mac, personal server, other computers**
+
+| Computer | What to do | What it does |
+|---|---|---|
+| Another Mac | Install the app and sign in with the same Google account; pick the cloud save | Continues the same companion. Its own usage grows it; the save carries the progress between Macs. Use one Mac at a time to avoid a conflict prompt |
+| Linux server, or a computer without the app | Install `ptb` and sign in once (steps below) | Every 30 minutes, uploads that computer's Claude Code / Codex daily token totals. The Mac adds the new usage to growth on its next sync. `ptb status` / `ptb dex` show the save |
+
+`ptb` in short (full guide: [scripts/ptb/README.md](scripts/ptb/README.md)):
+
+```sh
+# Mac: package ptb with the same OAuth client JSON, copy it to the server
+python3 scripts/build-ptb.py --oauth-client-config <OAuth client JSON>
+scp -r build/ptb <server>:~/.local/share/poketokenbar-gs
+# Server: install (adds ~/.local/bin/ptb and a cron job every 30 minutes)
+python3 ~/.local/share/poketokenbar-gs/ptb.py install
+# Sign in once: keep an SSH tunnel open from the Mac, then open the printed URL in the Mac browser
+ssh -L 8765:127.0.0.1:8765 <server>      # on the Mac
+ptb login                                # on the server
+ptb push && ptb status                   # check
+```
+
+How the usage is combined:
+
+- Each computer keeps **one** usage file in the Drive folder, `PokeTokenBar-Usage-<device>.json`, rewritten in place with the last 14 days.
+- The Mac credits only usage **after** it first sees a computer, so earlier history is not paid out at once. A late upload just after midnight still counts.
+- What was already credited is stored in the save, so a second Mac never credits the same tokens again.
+- The menu bar and popover keep showing this Mac's usage. Settings → *Google sync* lists other computers' usage for today.
+- Don't run `ptb` on a Mac that runs the app; it refuses, because that Mac's usage would count twice.
 
 Build: `python3 scripts/build-google-save-version.py --oauth-client-config <downloaded Desktop OAuth client JSON>` → `build/google-save-version/PokeTokenBar_gs.app`. Google's token endpoint requires the Desktop client secret even with PKCE, so pass the JSON (not only `--google-client-id`) or sign-in fails with HTTP 400. Keep that JSON out of the repository.
 

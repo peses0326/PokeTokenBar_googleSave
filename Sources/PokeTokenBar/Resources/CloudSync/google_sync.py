@@ -34,6 +34,8 @@ TOKEN = "https://oauth2.googleapis.com/token"
 MAX_SAVE = 8 * 1024 * 1024
 MAX_SUMMARY = 256 * 1024
 MAX_FILES = 2000
+# Each device keeps its current revision plus one backup; older ones it wrote go to the Drive trash.
+REVISIONS_PER_DEVICE = 2
 # How long the loopback listener waits for the browser. The consent screen, the unverified-app
 # warning and adding a test user can easily take longer than 4 minutes; when the listener has
 # already exited, the browser only shows "127.0.0.1 refused to connect". GoogleCloudSync.swift
@@ -120,6 +122,15 @@ def heads(records):
     return [r for r in records if not any(
         other["revision"] != r["revision"] and other["clock"] != r["clock"] and
         dominates(other["clock"], r["clock"]) for other in records)]
+
+
+def revision_file_name(save, revision):
+    """`PokeTokenBar-Save-<device>-<date>_<time>-<revision>.json`, so the Drive folder shows
+    which computer wrote each revision. Only for people: sync reads the file's metadata."""
+    device = re.sub(r'[\x00-\x1f\x7f/\\:*?"<>|]', "", str(save.get("sourceDevice") or ""))
+    device = re.sub(r"\s+", "-", device.strip())[:40].strip("-.") or "Device"
+    stamp = str(save.get("exportedAt", ""))[:19].replace(":", "").replace("T", "_")
+    return "-".join(part for part in ("PokeTokenBar-Save", device, stamp, revision[:8]) if part) + ".json"
 
 
 def save_digest(save):
@@ -387,8 +398,7 @@ class Sync:
         if not pending:
             return
         if not any(r["revision"] == pending["revision"] for r in records):
-            stamp = str(pending["save"].get("exportedAt", ""))[:19].replace(":", "").replace("T", "_")
-            self.google.create({"name": "PokeTokenBar-Save-" + stamp + "-" + pending["revision"][:8] + ".json",
+            self.google.create({"name": revision_file_name(pending["save"], pending["revision"]),
                 "appProperties": {"ptbKind": "save-v1"},
                 "description": json.dumps(dict({k: pending[k] for k in ("revision", "clock", "writer", "sha256")},
                     gameDigest=pending["digest"],
@@ -414,11 +424,11 @@ class Sync:
         self.journal["pending"] = pending
         atomic_json(self.journal_path, self.journal)  # Durable payload before network I/O.
         self.finish_pending(records)
-        # Only prune this writer's dominated history, retaining 30 revisions including
-        # the new one. Other devices and unresolved branch heads are never deleted here.
+        # Only prune this writer's dominated history, retaining REVISIONS_PER_DEVICE revisions
+        # including the new one. Other devices and unresolved branch heads are never deleted here.
         old = sorted((r for r in records if r["writer"] == device),
                      key=lambda r: r["clock"].get(device, 0), reverse=True)
-        for record in old[29:]:
+        for record in old[REVISIONS_PER_DEVICE - 1:]:
             if dominates(merged, record["clock"]) and merged != record["clock"]:
                 with contextlib.suppress(SyncError):
                     self.google.request(API + "/" + urllib.parse.quote(record["fileId"], safe=""),

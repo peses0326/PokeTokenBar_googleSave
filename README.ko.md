@@ -24,6 +24,8 @@
 
 **자동 움직임.** 설정 → 플로팅 펫 → *자동 움직임*. 동작마다 체크박스가 있습니다. *빈도*는 얼마나 자주 움직일지(1단계 약 15~35초, 기본 2단계 약 8~20초, 5단계 약 1.5~4초), *이동 범위*는 걷기가 펫을 놓아둔 자리에서 얼마나 멀리 갈 수 있는지(펫 너비의 약 0.75~6배)를 정합니다. 펫은 늘 제자리 쪽으로 돌아오고 화면 밖으로 나가지 않으며, 드래그하면 걷기를 멈춥니다. macOS *동작 줄이기*나 저전력 모드에서는 움직이지 않습니다.
 
+**설치.** [최신 릴리스](https://github.com/peses0326/PokeTokenBar_googleSave/releases/latest)에서 `PokeTokenBar_gs.zip`을 받아 압축을 풀고 `PokeTokenBar_gs.app`을 `/Applications`로 옮기세요. 공증(notarization)을 받지 않은 앱이라 처음 실행이 막힙니다. 시스템 설정 → 개인정보 보호 및 보안에서 *그래도 열기*를 누르세요(또는 `xattr -dr com.apple.quarantine /Applications/PokeTokenBar_gs.app` 실행). Apple Silicon, macOS 14 이상. 원본 앱과 함께 설치됩니다.
+
 **Google Drive 동기화**
 
 1. 설정 → *Google 동기화* → **Google 로그인**. 브라우저가 열리면 승인합니다. 탭에 *Sign-in received*가 뜨고 앱에 계정이 표시됩니다.
@@ -36,6 +38,7 @@
 - **어디에.** 내 Drive의 `PokeTokenBar_Save` 폴더에 리비전마다 작은 JSON 파일 하나. 설정의 *내 Drive의 세이브 폴더 열기*로 볼 수 있습니다. 파일 이름은 `PokeTokenBar-Save-<기기명>-<날짜>_<시각>-<ID>.json`이고, 기기마다 현재 세이브와 백업 1개, 이렇게 2개만 남기고 자기가 쓴 더 오래된 것은 Drive 휴지통으로 옮깁니다.
 - **언제.** 앱이 실행 중일 때 사용량 새로고침 뒤 최대 30분에 한 번, 그리고 *지금 동기화*를 누를 때. 한 번 동기화할 때 짧은 Python 프로세스 하나(`python3` 3.9 이상 필요, 예: Xcode Command Line Tools)가 폴더 목록을 확인하고 게임이 바뀌었을 때만 올리므로 CPU·배터리·네트워크 부담은 무시할 수준입니다.
 - **충돌.** 리비전은 시각이 아니라 벡터 클록으로 순서를 판단합니다. 두 Mac이 마지막 동기화 이후 각자 진행했다면 아무것도 덮어쓰지 않고 어느 세이브로 이어 갈지 묻습니다. 교체 전에는 로컬 백업을 만들고, 두 세이브의 아이템·경험치를 합치지는 않습니다. 한 번에 한 Mac만 쓰면 생기지 않습니다.
+- **개발자 서버 없음.** 앱은 구글(로그인, 그리고 *내* Drive의 `PokeTokenBar_Save` 폴더)과 *개인정보 & 권한*에 적힌 원본 앱의 호스트하고만 통신합니다. PokeTokenBar_gs 서버는 없어서 개발자에게 보내는 데이터가 없고, 개발자는 내 Drive를 볼 수 없습니다. 로그인 토큰은 이 Mac에만 저장됩니다(`~/Library/Application Support/PokeTokenBar_gs/google-sync/`, 본인만 읽을 수 있음). 설정에서 로그아웃하면 지워지고, [myaccount.google.com/permissions](https://myaccount.google.com/permissions)에서 접근 권한을 해제할 수도 있습니다.
 
 **두 번째 Mac, 개인 서버, 다른 컴퓨터**
 

@@ -1385,22 +1385,49 @@ private struct SpeechBubbleView: View {
         .padding(.horizontal, FloatingPetController.bubbleHorizontalPadding)
         .padding(.vertical, 6)
         .background(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
+            SpeechBubbleShape()
                 .fill(Color(nsColor: .windowBackgroundColor))
                 .shadow(color: .black.opacity(0.15), radius: 4, y: 2)
-        )
-        .overlay(
-            Path { path in
-                path.move(to: CGPoint(x: 10, y: 0))
-                path.addLine(to: CGPoint(x: 20, y: 0))
-                path.addLine(to: CGPoint(x: 15, y: 6))
-                path.closeSubpath()
-            }
-            .fill(Color(nsColor: .windowBackgroundColor))
-            .offset(y: 5),
-            alignment: .bottom
+                .overlay(
+                    // The fill matches terminal backgrounds, so a 1 pt dotted outline keeps the bubble apart.
+                    SpeechBubbleShape()
+                        .stroke(Color.secondary,
+                                style: StrokeStyle(lineWidth: 1, lineCap: .round, dash: [0.1, 2.5]))
+                )
         )
         .padding(.bottom, 6)
+    }
+}
+
+/// Rounded bubble with its tail below the bottom-left edge, drawn as one outline so a stroke
+/// runs around the tail too. The tail hangs into the 6 pt bottom padding of `SpeechBubbleView`.
+struct SpeechBubbleShape: Shape {
+    var cornerRadius: CGFloat = 12
+    var tailLeft: CGFloat = 10
+    var tailWidth: CGFloat = 10
+    var tailHeight: CGFloat = 6
+
+    func path(in rect: CGRect) -> Path {
+        let r = min(cornerRadius, rect.height / 2, rect.width / 2)
+        var path = Path()
+        path.move(to: CGPoint(x: rect.minX + r, y: rect.minY))
+        path.addLine(to: CGPoint(x: rect.maxX - r, y: rect.minY))
+        path.addArc(tangent1End: CGPoint(x: rect.maxX, y: rect.minY),
+                    tangent2End: CGPoint(x: rect.maxX, y: rect.minY + r), radius: r)
+        path.addLine(to: CGPoint(x: rect.maxX, y: rect.maxY - r))
+        path.addArc(tangent1End: CGPoint(x: rect.maxX, y: rect.maxY),
+                    tangent2End: CGPoint(x: rect.maxX - r, y: rect.maxY), radius: r)
+        path.addLine(to: CGPoint(x: rect.minX + tailLeft + tailWidth, y: rect.maxY))
+        path.addLine(to: CGPoint(x: rect.minX + tailLeft + tailWidth / 2, y: rect.maxY + tailHeight))
+        path.addLine(to: CGPoint(x: rect.minX + tailLeft, y: rect.maxY))
+        path.addLine(to: CGPoint(x: rect.minX + r, y: rect.maxY))
+        path.addArc(tangent1End: CGPoint(x: rect.minX, y: rect.maxY),
+                    tangent2End: CGPoint(x: rect.minX, y: rect.maxY - r), radius: r)
+        path.addLine(to: CGPoint(x: rect.minX, y: rect.minY + r))
+        path.addArc(tangent1End: CGPoint(x: rect.minX, y: rect.minY),
+                    tangent2End: CGPoint(x: rect.minX + r, y: rect.minY), radius: r)
+        path.closeSubpath()
+        return path
     }
 }
 

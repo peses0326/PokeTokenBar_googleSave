@@ -491,3 +491,21 @@ final class FloatingPetAgentWiringTests: XCTestCase {
         XCTAssertEqual(opened, 1)
     }
 }
+
+/// The bubble's dotted outline is stroked from this one path, so the tail must be part of it:
+/// a separate tail shape would leave the outline running straight under the tail.
+final class SpeechBubbleShapeTests: XCTestCase {
+    func testOutlineIncludesTailInsideBottomPadding() {
+        let rect = CGRect(x: 0, y: 0, width: 180, height: 40)
+        let shape = SpeechBubbleShape()
+        let bounds = shape.path(in: rect).boundingRect
+        XCTAssertEqual(bounds.maxY, rect.maxY + shape.tailHeight, accuracy: 0.01,
+                       "tail tip hangs exactly into SpeechBubbleView's 6 pt bottom padding")
+        XCTAssertEqual(shape.tailHeight, 6)
+        XCTAssertEqual(bounds.minX, rect.minX, accuracy: 0.01)
+        XCTAssertEqual(bounds.maxX, rect.maxX, accuracy: 0.01)
+        XCTAssertEqual(bounds.minY, rect.minY, accuracy: 0.01)
+        let tip = CGPoint(x: shape.tailLeft + shape.tailWidth / 2, y: rect.maxY + shape.tailHeight - 1)
+        XCTAssertTrue(shape.path(in: rect).contains(tip), "tail is filled as part of the bubble")
+    }
+}

@@ -60,8 +60,8 @@ ptb push && ptb status                   # check
 
 How the usage is combined:
 
-- Each computer keeps **one** usage file in the Drive folder, `PokeTokenBar-Usage-<device>.json`, rewritten in place with the last 14 days.
-- The Mac credits only usage **after** it first sees a computer, so earlier history is not paid out at once. A late upload just after midnight still counts.
+- Each computer keeps **one** usage file in the Drive folder, `PokeTokenBar-Usage-<device>.json`, rewritten in place. It holds that computer's lifetime total.
+- The Mac credits whatever the total grew by since the last credit, with no date limit: weeks with no Mac open are still counted in full. Only usage **after** the Mac first sees a computer counts, so earlier history is not paid out at once.
 - What was already credited is stored in the save, so a second Mac never credits the same tokens again.
 - The menu bar and popover keep showing this Mac's usage. Settings → *Google sync* lists other computers' usage for today.
 - Don't run `ptb` on a Mac that runs the app; it refuses, because that Mac's usage would count twice.

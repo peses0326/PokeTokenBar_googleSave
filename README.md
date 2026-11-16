@@ -24,6 +24,8 @@ Everything else (menu bar, popover, settings, login launch) is the original code
 
 **Idle motions.** Settings → Floating Pet → *Auto motion*. Each motion has its own checkbox. *Frequency* sets how often the pet moves (level 1 ≈ every 15–35 s, level 2 = default ≈ 8–20 s, level 5 ≈ 1.5–4 s). *Range* sets how far a walk may wander from where you placed the pet (about 0.75 to 6 pet widths). The pet always walks back toward its home spot, never leaves the screen, and stops a walk when you drag it. Motions pause under macOS *Reduce motion* or Low Power Mode.
 
+**Install.** Download `PokeTokenBar_gs.zip` from the [latest release](https://github.com/peses0326/PokeTokenBar_googleSave/releases/latest), unzip it and drag `PokeTokenBar_gs.app` into `/Applications`. The app is not notarized, so the first launch is blocked: open System Settings → Privacy & Security and click *Open Anyway* (or run `xattr -dr com.apple.quarantine /Applications/PokeTokenBar_gs.app`). Apple Silicon, macOS 14 or later. It installs alongside the original app.
+
 **Google Drive sync**
 
 1. Settings → *Google sync* → **Sign in with Google**. Your browser opens; approve the request. The tab then says *Sign-in received*, and the app shows your account.
@@ -36,6 +38,7 @@ How it works:
 - **Where.** One small JSON file per revision in `PokeTokenBar_Save` in your own Drive. *Open my Drive save folder* in Settings shows it. Files are named `PokeTokenBar-Save-<device>-<date>_<time>-<id>.json`; each device keeps two: its current save and one backup. Older ones it wrote go to the Drive trash.
 - **When.** After the usage refresh, at most once every 30 minutes while the app runs, plus *Sync now*. A sync starts one short Python process (`python3` 3.9+ must be installed, e.g. via Xcode Command Line Tools), lists the folder and uploads only if the game changed, so the CPU, battery and network cost is negligible.
 - **Conflicts.** Revisions carry vector clocks, not timestamps. If two Macs both progressed since their last sync, nothing is overwritten: the app asks which save to continue, keeps a local backup before replacing anything, and never adds the two saves' items or experience together. Using one Mac at a time avoids this entirely.
+- **No developer server.** The app talks only to Google (sign-in, plus the `PokeTokenBar_Save` folder in *your own* Drive) and the original app's hosts listed under *Privacy & permissions*. There is no PokeTokenBar_gs server: nothing is sent to the developer, and the developer cannot read your Drive. The sign-in token stays on this Mac (`~/Library/Application Support/PokeTokenBar_gs/google-sync/`, readable only by you). Signing out in Settings deletes it; you can also revoke access at [myaccount.google.com/permissions](https://myaccount.google.com/permissions).
 
 **Second Mac, personal server, other computers**
 

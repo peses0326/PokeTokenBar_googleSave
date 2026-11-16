@@ -1,15 +1,15 @@
 #!/bin/bash
-# Builds the app icon from the egg pixel art (assets/googlesave/egg.png):
+# Builds the app icon from the Poké Ball pixel art (assets/googlesave/logo.png):
 # assets/AppIcon.icns plus assets/icon_1024.png, assets/icon.png (512) and assets/icon.svg.
 # Each size is rendered natively by generate-gs-icon.swift so the pixel art stays crisp.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-EGG="assets/googlesave/egg.png"
+SPRITE="assets/googlesave/logo.png"
 ICONSET="build/GSAppIcon.iconset"
 rm -rf "$ICONSET"; mkdir -p "$ICONSET"
 
-gen() { swift scripts/generate-gs-icon.swift "$EGG" "$ICONSET/$1" "$2"; }
+gen() { swift scripts/generate-gs-icon.swift "$SPRITE" "$ICONSET/$1" "$2"; }
 gen icon_16x16.png        16
 gen icon_16x16@2x.png     32
 gen icon_32x32.png        32

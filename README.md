@@ -16,7 +16,7 @@ Everything below this section is the original README.
 | Save sync | Manual save export/import | Automatic backup to `PokeTokenBar_Save` in your own Google Drive (`drive.file` scope only), continue on another Mac |
 | Floating pet motion | No idle motion (bobs only while an agent works) | Idle motions you pick one by one (hop, walk around, look around, wiggle, bounce, sway), with frequency and walking range from 1 to 5 |
 | Clicking the pet after an agent finishes | Opens the popover | Brings that agent's Terminal / iTerm2 tab to the front (needs the `app`/`tty` hook parameters below) |
-| App identity | `PokeTokenBar.app` | `PokeTokenBar_gs.app` with its own egg icon, bundle id, data folder and `poketokenbar-gs://` agent URL scheme, installs alongside the original |
+| App identity | `PokeTokenBar.app` | `PokeTokenBar_gs.app` with its own Poké Ball icon, bundle id, data folder and `poketokenbar-gs://` agent URL scheme, installs alongside the original |
 | Usage from other computers | Only the Mac running the app counts | A Linux server or any other computer runs `ptb`, which uploads its daily token totals; the Mac grows the companion with them |
 | Egg prices | 1B / 2.5B / 4B | 700M / 1.75B / 2.8B (30% off) |
 

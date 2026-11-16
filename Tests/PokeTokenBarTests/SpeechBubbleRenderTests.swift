@@ -8,7 +8,7 @@ import XCTest
 ///
 ///     PTB_BUBBLE_RENDER_DIR=/some/dir swift test --filter SpeechBubbleRenderTests
 ///
-/// Pikachu is downloaded into a throwaway `SpriteStore`; a placeholder stands in when offline.
+/// The sprite is a generated placeholder in a throwaway `SpriteStore`, so nothing is downloaded.
 @MainActor
 final class SpeechBubbleRenderTests: XCTestCase {
     private static let speciesID = 25
@@ -31,8 +31,11 @@ final class SpeechBubbleRenderTests: XCTestCase {
         let spriteDir = FileManager.default.temporaryDirectory.appendingPathComponent("bubble-render-\(UUID())")
         try FileManager.default.createDirectory(at: spriteDir, withIntermediateDirectories: true)
         addTeardownBlock { try? FileManager.default.removeItem(at: spriteDir) }
+        // A generated stand-in, never downloaded Pokémon artwork, so the renders can go in a PR.
+        // Its top 30% is empty canvas, like most sprites, so the tail anchor is exercised.
+        let key = SpriteStore.cacheKey(speciesID: Self.speciesID, animated: false, shiny: false, back: false)
+        try placeholderPNG().write(to: spriteDir.appendingPathComponent(key + ".png"))
         let sprites = SpriteStore(directory: spriteDir)
-        _ = await sprites.data(speciesID: Self.speciesID, animated: false, back: false)
 
         let cases: [(name: String, pet: Double, scale: Double, font: BubbleFontDesign, theme: BubbleColorTheme, dark: Bool)] = [
             ("pet64-dark", 64, 1, .system, .system, true),
@@ -83,6 +86,22 @@ final class SpeechBubbleRenderTests: XCTestCase {
             try png.write(to: directory.appendingPathComponent("bubble-\(c.name).png"))
             print("wrote bubble-\(c.name).png body=\(usage.speechBubbleStyle.bodySize)pt panel=\(panel)")
         }
+    }
+
+    private func placeholderPNG() throws -> Data {
+        let side = 96
+        let rep = try XCTUnwrap(NSBitmapImageRep(
+            bitmapDataPlanes: nil, pixelsWide: side, pixelsHigh: side, bitsPerSample: 8, samplesPerPixel: 4,
+            hasAlpha: true, isPlanar: false, colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0))
+        NSGraphicsContext.saveGraphicsState()
+        NSGraphicsContext.current = try XCTUnwrap(NSGraphicsContext(bitmapImageRep: rep))
+        NSColor.systemTeal.setFill()
+        NSBezierPath(roundedRect: NSRect(x: 22, y: 6, width: 52, height: 58), xRadius: 18, yRadius: 18).fill()
+        NSColor.white.setFill()
+        NSBezierPath(ovalIn: NSRect(x: 34, y: 40, width: 8, height: 8)).fill()
+        NSBezierPath(ovalIn: NSRect(x: 54, y: 40, width: 8, height: 8)).fill()
+        NSGraphicsContext.restoreGraphicsState()
+        return try XCTUnwrap(rep.representation(using: .png, properties: [:]))
     }
 
     private func makeCompanion() async throws -> CompanionStore {

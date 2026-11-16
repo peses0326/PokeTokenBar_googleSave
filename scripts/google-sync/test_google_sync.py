@@ -229,7 +229,7 @@ class GoogleSyncTests(unittest.TestCase):
     def test_revision_file_name_strips_path_and_control_characters(self):
         rev = "0123456789abcdef"
         name = lambda device: cloud.revision_file_name(dict(save(), sourceDevice=device), rev)
-        self.assertEqual(name("es의 MacBook Pro"), "PokeTokenBar-Save-es의-MacBook-Pro-2026-11-09_000000-01234567.json")
+        self.assertEqual(name("내 MacBook Pro"), "PokeTokenBar-Save-내-MacBook-Pro-2026-11-09_000000-01234567.json")
         self.assertEqual(name("../a/b:\x00c"), "PokeTokenBar-Save-abc-2026-11-09_000000-01234567.json")
         self.assertEqual(name(""), "PokeTokenBar-Save-Device-2026-11-09_000000-01234567.json")
         self.assertEqual(name(None), "PokeTokenBar-Save-Device-2026-11-09_000000-01234567.json")

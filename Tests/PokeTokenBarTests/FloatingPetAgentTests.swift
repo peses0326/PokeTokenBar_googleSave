@@ -495,17 +495,96 @@ final class FloatingPetAgentWiringTests: XCTestCase {
 /// The bubble's dotted outline is stroked from this one path, so the tail must be part of it:
 /// a separate tail shape would leave the outline running straight under the tail.
 final class SpeechBubbleShapeTests: XCTestCase {
-    func testOutlineIncludesTailInsideBottomPadding() {
+    func testOutlineIncludesCenteredTail() {
         let rect = CGRect(x: 0, y: 0, width: 180, height: 40)
-        let shape = SpeechBubbleShape()
-        let bounds = shape.path(in: rect).boundingRect
-        XCTAssertEqual(bounds.maxY, rect.maxY + shape.tailHeight, accuracy: 0.01,
-                       "tail tip hangs exactly into SpeechBubbleView's 6 pt bottom padding")
-        XCTAssertEqual(shape.tailHeight, 6)
+        let shape = SpeechBubbleShape(tailWidth: 12, tailHeight: 20)
+        let path = shape.path(in: rect)
+        let bounds = path.boundingRect
+        XCTAssertEqual(bounds.maxY, rect.maxY + 20, accuracy: 0.01, "tail tip reaches the requested length")
         XCTAssertEqual(bounds.minX, rect.minX, accuracy: 0.01)
         XCTAssertEqual(bounds.maxX, rect.maxX, accuracy: 0.01)
         XCTAssertEqual(bounds.minY, rect.minY, accuracy: 0.01)
-        let tip = CGPoint(x: shape.tailLeft + shape.tailWidth / 2, y: rect.maxY + shape.tailHeight - 1)
-        XCTAssertTrue(shape.path(in: rect).contains(tip), "tail is filled as part of the bubble")
+        XCTAssertTrue(path.contains(CGPoint(x: rect.midX, y: rect.maxY + 18)), "tail tip sits on the center axis")
+        XCTAssertFalse(path.contains(CGPoint(x: 15, y: rect.maxY + 3)), "no tail at the old left position")
+    }
+}
+
+/// The tail points from the bubble down to the sprite's visible top.
+@MainActor
+final class SpeechBubbleTailTests: XCTestCase {
+    func testShortGapIsBridgedByTheTailAlone() {
+        let style = SpeechBubbleStyle.standard
+        // 8 pt stack spacing + 1 pt empty canvas − 2 pt clearance = 7 pt, within the 8 pt reach.
+        XCTAssertEqual(SpeechBubbleView.tailPlacement(style: style, visibleTop: 1),
+                       .init(length: style.tailBase + 7, drop: 0))
+    }
+
+    func testTallEmptyCanvasMovesTheBubbleDownInsteadOfGrowingASpike() {
+        let style = SpeechBubbleStyle.standard
+        let placement = SpeechBubbleView.tailPlacement(style: style, visibleTop: 30)
+        XCTAssertEqual(placement.length, style.tailBase + style.tailReach)
+        XCTAssertEqual(placement.drop, 8 + 30 - 2 - style.tailReach, "tip lands 2 pt above the visible top")
+    }
+
+    func testTailGrowsWithTheFont() {
+        let large = SpeechBubbleStyle(petSize: 288)
+        let placement = SpeechBubbleView.tailPlacement(style: large, visibleTop: 60)
+        XCTAssertEqual(placement.length, large.tailBase + large.tailReach)
+        XCTAssertGreaterThan(placement.length, SpeechBubbleView.tailPlacement(style: .standard, visibleTop: 60).length)
+    }
+}
+
+/// Bubble text follows the pet size, never below 10 pt, and the bubble grows with it.
+@MainActor
+final class SpeechBubbleStyleTests: XCTestCase {
+    func testAutoSizeKeepsTheMinimumUpTo90AndGrowsAfter() {
+        for pet: CGFloat in [48, 64, 88, 90] {
+            XCTAssertEqual(SpeechBubbleStyle(petSize: pet).bodySize, 10, "pet \(pet)")
+        }
+        XCTAssertEqual(SpeechBubbleStyle(petSize: 192).bodySize, 13.5)
+        XCTAssertEqual(SpeechBubbleStyle(petSize: 384).bodySize, 20)
+        XCTAssertEqual(SpeechBubbleStyle(petSize: 64, fontScale: 0.8).bodySize, 10, "the user scale cannot go under 10 pt")
+        XCTAssertEqual(SpeechBubbleStyle(petSize: 96, fontScale: 1.5).bodySize, 15.5)
+        XCTAssertEqual(SpeechBubbleStyle(petSize: 96, fontScale: 9).bodySize,
+                       SpeechBubbleStyle(petSize: 96, fontScale: SpeechBubbleStyle.fontScaleRange.upperBound).bodySize,
+                       "out-of-range scales clamp")
+    }
+
+    func testStandardStyleKeepsTheOriginalLayout() {
+        XCTAssertEqual(SpeechBubbleStyle.standard.minWidth, 180)
+        XCTAssertEqual(SpeechBubbleStyle.standard.contentWidth, 164)
+        XCTAssertEqual(SpeechBubbleStyle.standard.headroom, 72)
+    }
+
+    func testEveryStyleFitsItsHeadroomAndPanel() {
+        let l = L(.ja)
+        let title = l.notifCritical
+        let body = String(repeating: l.agentDoneDefaultBody + " ", count: 6)
+        for design in BubbleFontDesign.allCases {
+            for pet: CGFloat in [48, 96, 192, 384] {
+                for scale in [0.8, 1.0, 1.6] {
+                    let style = SpeechBubbleStyle(petSize: pet, fontScale: scale, design: design)
+                    let fitted = FloatingPetController.fittedBubbleBody(body, title: title, style: style)
+                    let layout = FloatingPetController.measureSpeechBubbleLayout(title: title, body: fitted, style: style)
+                    let panel = FloatingPetController.panelSize(petSize: pet, showingBubble: true, style: style)
+                    XCTAssertFalse(layout.wouldTruncate, "\(design) \(pet) \(scale)")
+                    XCTAssertLessThanOrEqual(layout.size.height + SpeechBubbleStyle.stackSpacing, style.headroom - 2,
+                                             "\(design) pet \(pet) scale \(scale) bubble must fit its headroom")
+                    XCTAssertLessThanOrEqual(layout.size.width, panel.width)
+                    XCTAssertEqual(panel.height, pet + style.headroom)
+                }
+            }
+        }
+    }
+
+    func testLargerFontGrowsTheBubble() {
+        let small = FloatingPetController.measureSpeechBubbleLayout(title: "Done!", body: "Tests pass")
+        let large = FloatingPetController.measureSpeechBubbleLayout(
+            title: "Done!", body: "Tests pass", style: SpeechBubbleStyle(petSize: 288))
+        XCTAssertGreaterThan(large.size.width, small.size.width)
+        XCTAssertGreaterThan(large.size.height, small.size.height)
+        XCTAssertGreaterThan(FloatingPetController.panelSize(petSize: 96, showingBubble: true,
+                                                             style: SpeechBubbleStyle(petSize: 96, fontScale: 1.6)).width,
+                             FloatingPetController.panelSize(petSize: 96, showingBubble: true).width)
     }
 }

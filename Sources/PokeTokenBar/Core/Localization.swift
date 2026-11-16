@@ -443,6 +443,41 @@ struct L {
           "Покемон парит поверх окон — перетащите, чтобы переместить")
     }
     var floatingPetSizeLabel: String { t("크기", "Size", "サイズ", "Tamaño", "Taille", "Tamanho", "Größe", "Размер") }
+    var bubbleFontSizeLabel: String {
+        t("글자 크기", "Text size", "文字サイズ", "Tamaño del texto", "Taille du texte", "Tamanho do texto", "Textgröße", "Размер текста")
+    }
+    var bubbleFontSizeHint: String {
+        t("말풍선 글자는 펫 크기를 따라 커지고, 최소 10pt예요",
+          "Bubble text grows with the pet, never below 10 pt",
+          "吹き出しの文字はペットに合わせて大きくなり、最小 10pt です",
+          "El texto del globo crece con la mascota, nunca por debajo de 10 pt",
+          "Le texte de la bulle grandit avec le compagnon, jamais sous 10 pt",
+          "O texto do balão cresce com o mascote, nunca abaixo de 10 pt",
+          "Der Sprechblasentext wächst mit dem Pokémon, mindestens 10 pt",
+          "Текст в облачке растёт вместе с питомцем, не меньше 10 pt")
+    }
+    var bubbleFontLabel: String { t("글꼴", "Font", "フォント", "Fuente", "Police", "Fonte", "Schrift", "Шрифт") }
+    var bubbleThemeLabel: String {
+        t("말풍선 색상", "Bubble color", "吹き出しの色", "Color del globo", "Couleur de la bulle", "Cor do balão", "Sprechblasenfarbe", "Цвет облачка")
+    }
+    func bubbleFontName(_ design: BubbleFontDesign) -> String {
+        switch design {
+        case .system: t("기본", "System", "標準", "Sistema", "Système", "Sistema", "System", "Системный")
+        case .rounded: t("둥근", "Rounded", "丸ゴシック", "Redondeada", "Arrondie", "Arredondada", "Abgerundet", "Скруглённый")
+        case .serif: t("명조", "Serif", "明朝", "Serif", "Serif", "Serifada", "Serif", "С засечками")
+        case .monospaced: t("고정폭", "Monospaced", "等幅", "Monoespaciada", "Chasse fixe", "Monoespaçada", "Monospace", "Моноширинный")
+        }
+    }
+    func bubbleThemeName(_ theme: BubbleColorTheme) -> String {
+        switch theme {
+        case .system: t("시스템", "System", "システム", "Sistema", "Système", "Sistema", "System", "Системный")
+        case .cream: t("크림", "Cream", "クリーム", "Crema", "Crème", "Creme", "Creme", "Кремовый")
+        case .mint: t("민트", "Mint", "ミント", "Menta", "Menthe", "Menta", "Mint", "Мятный")
+        case .sky: t("하늘", "Sky", "スカイ", "Cielo", "Ciel", "Céu", "Himmel", "Небесный")
+        case .pink: t("핑크", "Pink", "ピンク", "Rosa", "Rose", "Rosa", "Rosa", "Розовый")
+        case .night: t("밤", "Night", "ナイト", "Noche", "Nuit", "Noite", "Nacht", "Ночной")
+        }
+    }
     /// 푸터 눈 아이콘의 툴팁(켜져 있을 때) — 켜는 쪽 문구는 floatingPetEnableLabel 을 그대로 쓴다.
     var floatingPetHideLabel: String {
         t("플로팅 펫 숨기기", "Hide floating pet", "フローティングペットを隠す", "Ocultar mascota flotante",

@@ -187,6 +187,23 @@ final class UsageStore {
     var floatingPetSize: Double {
         didSet { defaults.set(floatingPetSize, forKey: "floatingPetSize") }
     }
+    /// Speech bubble font multiplier over the size that follows the pet (0.8 … 1.6). Default 1.
+    var floatingPetBubbleFontScale: Double {
+        didSet { defaults.set(floatingPetBubbleFontScale, forKey: "floatingPetBubbleFontScale") }
+    }
+    /// Speech bubble typeface. Default system.
+    var floatingPetBubbleFont: BubbleFontDesign {
+        didSet { defaults.set(floatingPetBubbleFont.rawValue, forKey: "floatingPetBubbleFont") }
+    }
+    /// Speech bubble color preset. Default follows light/dark mode.
+    var floatingPetBubbleTheme: BubbleColorTheme {
+        didSet { defaults.set(floatingPetBubbleTheme.rawValue, forKey: "floatingPetBubbleTheme") }
+    }
+    /// The speech bubble style for the current pet size and bubble settings.
+    var speechBubbleStyle: SpeechBubbleStyle {
+        SpeechBubbleStyle(petSize: CGFloat(floatingPetSize), fontScale: floatingPetBubbleFontScale,
+                          design: floatingPetBubbleFont, theme: floatingPetBubbleTheme)
+    }
     /// Show limit alerts as speech bubbles on the floating pet. Default on; independent of Notification Center.
     var floatingPetBubbleAlerts: Bool {
         didSet { defaults.set(floatingPetBubbleAlerts, forKey: "floatingPetBubbleAlerts") }
@@ -984,6 +1001,11 @@ final class UsageStore {
         floatingPetEnabled = d.object(forKey: "floatingPetEnabled") as? Bool ?? false
         alwaysFacesBack = d.object(forKey: "alwaysFacesBack") as? Bool ?? false
         floatingPetSize = d.object(forKey: "floatingPetSize") as? Double ?? 96
+        floatingPetBubbleFontScale = min(max(d.object(forKey: "floatingPetBubbleFontScale") as? Double ?? 1,
+                                             SpeechBubbleStyle.fontScaleRange.lowerBound),
+                                         SpeechBubbleStyle.fontScaleRange.upperBound)
+        floatingPetBubbleFont = BubbleFontDesign(rawValue: d.string(forKey: "floatingPetBubbleFont") ?? "") ?? .system
+        floatingPetBubbleTheme = BubbleColorTheme(rawValue: d.string(forKey: "floatingPetBubbleTheme") ?? "") ?? .system
         floatingPetBubbleAlerts = d.object(forKey: "floatingPetBubbleAlerts") as? Bool ?? true
         floatingPetAgentActivity = d.object(forKey: "floatingPetAgentActivity") as? Bool ?? true
         floatingPetAutoMotion = d.object(forKey: "floatingPetAutoMotion") as? Bool ?? true

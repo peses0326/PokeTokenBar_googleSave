@@ -382,6 +382,8 @@ struct SettingsView: View {
                         .font(.caption).monospacedDigit().frame(width: 44, alignment: .trailing)
                 }
                 Divider()
+                bubbleStyleRows(store)
+                Divider()
                 toggleRow(l.floatingPetBubbleAlertsLabel, $store.floatingPetBubbleAlerts)
                 Divider()
                 groupRow {
@@ -400,6 +402,65 @@ struct SettingsView: View {
                     petMotionChecklist(store)
                 }
             }
+        }
+    }
+
+    /// Speech bubble text size, font and color. The size label shows the resulting body size,
+    /// which also follows the pet size.
+    @ViewBuilder
+    private func bubbleStyleRows(_ store: UsageStore) -> some View {
+        @Bindable var store = store
+        groupRow {
+            VStack(alignment: .leading, spacing: 1) {
+                Text(l.bubbleFontSizeLabel).font(.callout)
+                Text(l.bubbleFontSizeHint).font(.caption2).foregroundStyle(.tertiary)
+            }
+            Slider(value: $store.floatingPetBubbleFontScale, in: SpeechBubbleStyle.fontScaleRange, step: 0.1)
+                .accessibilityLabel(l.bubbleFontSizeLabel)
+            Text(String(format: "%gpt", store.speechBubbleStyle.bodySize))
+                .font(.caption).monospacedDigit().frame(width: 44, alignment: .trailing)
+        }
+        Divider()
+        groupRow {
+            Text(l.bubbleFontLabel).font(.callout)
+            Spacer()
+            Picker(l.bubbleFontLabel, selection: $store.floatingPetBubbleFont) {
+                ForEach(BubbleFontDesign.allCases) { design in
+                    Text(l.bubbleFontName(design))
+                        .font(.system(.callout, design: design.swiftUI))
+                        .tag(design)
+                }
+            }
+            .labelsHidden().pickerStyle(.menu).fixedSize()
+        }
+        Divider()
+        groupRow {
+            Text(l.bubbleThemeLabel).font(.callout)
+            Spacer()
+            Picker(l.bubbleThemeLabel, selection: $store.floatingPetBubbleTheme) {
+                ForEach(BubbleColorTheme.allCases) { theme in
+                    Label {
+                        Text(l.bubbleThemeName(theme))
+                    } icon: {
+                        Image(nsImage: Self.swatchImage(theme.palette))
+                    }
+                    .tag(theme)
+                }
+            }
+            .labelsHidden().pickerStyle(.menu).fixedSize()
+        }
+    }
+
+    /// Menu items cannot draw SwiftUI shapes, so the theme swatch is a tiny bitmap.
+    private static func swatchImage(_ palette: BubbleColorTheme.Palette) -> NSImage {
+        NSImage(size: NSSize(width: 14, height: 14), flipped: false) { rect in
+            let circle = NSBezierPath(ovalIn: rect.insetBy(dx: 1, dy: 1))
+            palette.background.setFill()
+            circle.fill()
+            palette.border.setStroke()
+            circle.lineWidth = 1
+            circle.stroke()
+            return true
         }
     }
 

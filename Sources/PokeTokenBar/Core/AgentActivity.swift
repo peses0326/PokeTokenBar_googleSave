@@ -16,13 +16,35 @@ struct AgentSource: Equatable, Sendable {
     var app: String
     /// Controlling terminal of the agent, e.g. `/dev/ttys002`; nil for GUI agents.
     var tty: String?
+    /// A link in the hosting app's own URL scheme that shows this agent (e.g. one tab of a
+    /// multi-session app). Opened on click only when `app` is that scheme's handler, so an
+    /// untrusted agent URL can never send the click to a browser or another app.
+    var open: URL?
 
-    init?(app: String?, tty: String?) {
+    init?(app: String?, tty: String?, open: String? = nil) {
         guard let app, app.count <= 128,
               app.range(of: #"^[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)+$"#, options: .regularExpression) != nil
         else { return nil }
         self.app = app
         self.tty = Self.sanitizedTTY(tty)
+        self.open = Self.sanitizedOpenURL(open)
+    }
+
+    /// Schemes every app shares, so they can never prove the link belongs to the agent's app.
+    static let sharedSchemes: Set<String> = ["http", "https", "file", "ftp", "data", "javascript", "mailto",
+                                             "about", "blob", "x-apple-helpviewer"]
+    static let maxOpenURLLength = 256
+
+    /// A custom-scheme URL with no spaces or control characters, else nil. Which app owns the
+    /// scheme is checked at click time (`AgentWindowFocuser`), when Launch Services can answer.
+    static func sanitizedOpenURL(_ raw: String?) -> URL? {
+        guard let raw, !raw.isEmpty, raw.count <= maxOpenURLLength,
+              raw.unicodeScalars.allSatisfy({ $0.value > 0x20 && $0.value < 0x7F }),
+              let url = URL(string: raw), let scheme = url.scheme?.lowercased(),
+              scheme.range(of: #"^[a-z][a-z0-9+.-]{1,40}$"#, options: .regularExpression) != nil,
+              !sharedSchemes.contains(scheme)
+        else { return nil }
+        return url
     }
 
     /// `ttys002` and `/dev/ttys002` both become `/dev/ttys002`; anything else (`??`, paths) is dropped.
@@ -34,7 +56,7 @@ struct AgentSource: Equatable, Sendable {
     }
 }
 
-/// One parsed `poketokenbar://agent?state=<working|waiting|done|idle>[&message=<text>][&label=<name>][&app=<bundle id>][&tty=<tty>]` URL.
+/// One parsed `poketokenbar://agent?state=<working|waiting|done|idle>[&message=<text>][&label=<name>][&app=<bundle id>][&tty=<tty>][&open=<app-scheme URL>]` URL.
 struct AgentActivityEvent: Equatable, Sendable {
     static let scheme = "poketokenbar"
     /// Schemes this build answers: the default plus any it registers in `CFBundleURLTypes`, so a build
@@ -71,7 +93,8 @@ struct AgentActivityEvent: Equatable, Sendable {
         let message = Self.sanitizedMessage(items.first(where: { $0.name == "message" })?.value)
         label = Self.sanitizedLabel(items.first(where: { $0.name == "label" })?.value)
         source = AgentSource(app: items.first(where: { $0.name == "app" })?.value,
-                             tty: items.first(where: { $0.name == "tty" })?.value)
+                             tty: items.first(where: { $0.name == "tty" })?.value,
+                             open: items.first(where: { $0.name == "open" })?.value)
         switch state {
         case "idle": activity = .idle
         case "working": activity = .working

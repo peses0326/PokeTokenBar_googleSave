@@ -39,6 +39,47 @@ final class AgentSourceTests: XCTestCase {
         XCTAssertTrue(script?.contains("\"/dev/ttys004\"") == true)
     }
 
+    // MARK: App links (`open`)
+
+    func testOpenLinkIsParsedForCustomSchemes() throws {
+        let e = try event("state=done&app=local.mac-yes-code.app&open=mac-yes-code%3A%2F%2Fsession%2Fyc-a1aa79aa")
+        XCTAssertEqual(e.source?.open, URL(string: "mac-yes-code://session/yc-a1aa79aa"))
+        XCTAssertNil(try event("state=done&app=com.apple.Terminal").source?.open, "old hooks send no link")
+    }
+
+    func testOpenLinkRefusesSharedSchemesAndJunk() throws {
+        for raw in ["https%3A%2F%2Fexample.com", "http%3A%2F%2F127.0.0.1%3A8903%2F", "file%3A%2F%2F%2Fetc%2Fhosts",
+                    "javascript%3Aalert(1)", "mailto%3Aa%40b.c", "x", "mac-yes-code%3A%2F%2Fa%20b",
+                    "mac-yes-code%3A%2F%2F" + String(repeating: "a", count: 300)] {
+            XCTAssertNil(try event("state=done&app=local.mac-yes-code.app&open=\(raw)").source?.open, raw)
+        }
+        XCTAssertNil(try event("state=done&open=mac-yes-code%3A%2F%2Fsession%2Fx").source,
+                     "a link without its app is ignored with the rest of the source")
+    }
+
+    func testLinkOpensOnlyWhenTheSourceAppOwnsItsScheme() throws {
+        let source = try XCTUnwrap(AgentSource(app: "local.mac-yes-code.app", tty: nil,
+                                               open: "mac-yes-code://session/yc-a1aa79aa"))
+        XCTAssertEqual(AgentWindowFocuser.openableLink(source, handlerBundleID: { _ in "local.mac-yes-code.app" }),
+                       source.open)
+        XCTAssertNil(AgentWindowFocuser.openableLink(source, handlerBundleID: { _ in "com.evil.app" }),
+                     "another app's scheme is never opened")
+        XCTAssertNil(AgentWindowFocuser.openableLink(source, handlerBundleID: { _ in nil }), "no handler, no open")
+    }
+
+    func testFocusOpensTheOwnedLinkOfARunningApp() throws {
+        // Finder is always running, so this reaches the link branch without launching anything.
+        let source = try XCTUnwrap(AgentSource(app: "com.apple.finder", tty: nil, open: "finder-test://x"))
+        var opened: [URL] = []
+        XCTAssertTrue(AgentWindowFocuser.focus(source, handlerBundleID: { _ in "com.apple.finder" },
+                                               openURL: { opened.append($0); return true }))
+        XCTAssertEqual(opened, [URL(string: "finder-test://x")!])
+        let absent = try XCTUnwrap(AgentSource(app: "com.example.not-running", tty: nil, open: "nr-test://x"))
+        XCTAssertFalse(AgentWindowFocuser.focus(absent, handlerBundleID: { _ in "com.example.not-running" },
+                                                openURL: { opened.append($0); return true }))
+        XCTAssertEqual(opened.count, 1, "a closed app is never launched through its link")
+    }
+
     // MARK: Tracker and click target
 
     func testTrackerKeepsTheSourceAndPrefersTheFinishedAgent() throws {

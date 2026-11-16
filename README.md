@@ -283,11 +283,12 @@ The floating pet can follow any AI coding agent: it bobs while the agent works, 
 Setup is manual and optional: PokeTokenBar does not install agent hooks or edit your agent settings. Enable the floating pet, leave **React to agent activity** on, and add the appropriate hook below.
 
 ```text
-poketokenbar://agent?state=<working|waiting|done|idle>[&label=<name>][&message=<text>][&app=<bundle id>][&tty=<tty>]
+poketokenbar://agent?state=<working|waiting|done|idle>[&label=<name>][&message=<text>][&app=<bundle id>][&tty=<tty>][&open=<app link>]
 ```
 
 - `label` and `message` are optional, URL-encoded, and shown as plain text. `label` (up to 24 characters) names the agent so several can run at once, each with its own state. Without a label, all events belong to one agent.
 - `app` and `tty` are optional and say where the agent runs: the hosting app's bundle id (`$__CFBundleIdentifier` in a hook) and its terminal (e.g. `ttys002`). With them, clicking the pet while it shows a finished or waiting agent brings that window forward instead of opening the popover. Terminal and iTerm2 select the exact tab (macOS asks once for Automation permission); other apps are activated. Only an app that is already running is touched.
+- `open` is optional: a link in the hosting app's own URL scheme that shows this agent, such as one tab of a multi-session app (`myapp://session/42`, URL-encoded). On click it is opened instead of just activating the app, but only when macOS names the `app` bundle id as that scheme's handler. Web, file and mail links are refused.
 - `working` falls back to idle after 10 minutes without news. `done` shows for about 6 seconds, then the pet walks home. `waiting` stays until that agent's next event or until you click the pet.
 - With several agents, a question comes first: the bubble shows the latest waiting agent and how many more are waiting, and the pet keeps bobbing while any agent works. A `done` shows its label for a few seconds, then the earlier bubble comes back. Clicking the pet clears every question, then prays when an egg is shown or opens the popover for a hatched Pokémon. Use right-click → Open to open it while showing an egg. Up to 8 labels are tracked.
 - A limit alert bubble takes priority. With Reduce Motion or Low Power Mode on, the pet shows bubbles without moving.

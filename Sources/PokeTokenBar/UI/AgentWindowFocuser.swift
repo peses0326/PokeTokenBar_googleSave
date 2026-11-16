@@ -2,6 +2,7 @@ import AppKit
 
 /// Brings the window an agent runs in to the front when the pet is clicked.
 /// Terminal and iTerm2 select the exact tab by tty (Automation permission, asked once by macOS);
+/// an app that passed a link in its own URL scheme (`AgentSource.open`) is asked to show it;
 /// any other app — or a refused permission — is simply activated. Never launches anything:
 /// the source comes from an untrusted URL, so only an app that is already running is touched.
 @MainActor
@@ -11,9 +12,11 @@ enum AgentWindowFocuser {
 
     /// Returns false when the app is not running, so the click falls back to its usual action.
     @discardableResult
-    static func focus(_ source: AgentSource) -> Bool {
+    static func focus(_ source: AgentSource, handlerBundleID: (URL) -> String? = defaultHandlerBundleID,
+                      openURL: (URL) -> Bool = { NSWorkspace.shared.open($0) }) -> Bool {
         guard let app = NSRunningApplication.runningApplications(withBundleIdentifier: source.app).first
         else { return false }
+        if let link = openableLink(source, handlerBundleID: handlerBundleID), openURL(link) { return true }
         if let tty = source.tty, let script = tabScript(bundleID: source.app, tty: tty) {
             var error: NSDictionary?
             let result = NSAppleScript(source: script)?.executeAndReturnError(&error)
@@ -21,6 +24,18 @@ enum AgentWindowFocuser {
         }
         app.activate()
         return true
+    }
+
+    /// The source's `open` link, only when Launch Services names the source app as its handler.
+    /// Anything else (another app's scheme, no handler) is dropped and the app is just focused.
+    static func openableLink(_ source: AgentSource, handlerBundleID: (URL) -> String?) -> URL? {
+        guard let link = source.open, let handler = handlerBundleID(link),
+              handler.caseInsensitiveCompare(source.app) == .orderedSame else { return nil }
+        return link
+    }
+
+    nonisolated static func defaultHandlerBundleID(_ url: URL) -> String? {
+        NSWorkspace.shared.urlForApplication(toOpen: url).flatMap { Bundle(url: $0)?.bundleIdentifier }
     }
 
     /// AppleScript that selects the tab whose tty matches and returns true, or nil for apps with

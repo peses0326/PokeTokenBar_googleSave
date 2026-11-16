@@ -121,7 +121,7 @@ def collect_days(cfg):
     collector = ptb_collect.Collector(HOME / "collector", cfg.get("timezone", "Asia/Seoul"))
     try:
         collector.scan([r for r in roots_c if Path(r).is_dir()], [r for r in roots_x if Path(r).is_dir()])
-        return collector.daily(cloud.USAGE_DAYS)
+        return collector.daily(cloud.USAGE_DAYS), collector.lifetime()
     finally:
         collector.close()
 
@@ -132,9 +132,9 @@ def push(args):
         raise cloud.SyncError("On a Mac, the PokeTokenBar_gs app counts usage itself; ptb push is for other computers")
     cfg = config()
     google = signed_in_google()
-    days = collect_days(cfg)
+    days, total = collect_days(cfg)
     device = cloud.Sync(google, state_dir()).journal["device"]
-    result = cloud.usage_push(google, device, cfg.get("deviceName") or socket.gethostname(), days)
+    result = cloud.usage_push(google, device, cfg.get("deviceName") or socket.gethostname(), days, total)
     today = dt.datetime.now(ptb_collect.ZoneInfo(cfg.get("timezone", "Asia/Seoul"))).date().isoformat()
     line = f"{dt.datetime.now().isoformat(timespec='seconds')} pushed {result['days']} days, today {sum(days.get(today, {}).values()):,} tokens"
     print(line)   # also the cron log line

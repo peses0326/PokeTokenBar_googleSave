@@ -186,7 +186,7 @@ final class GoogleCloudSync {
         guard let data = try? await run(["usage-list"]),
               let reply = try? JSONDecoder().decode(UsageReply.self, from: data), reply.status == "ok" else { return }
         remoteDevices = RemoteUsageCredit.validated(reply.devices)
-        companion.creditRemoteUsage(remoteDevices, todayDate: LocalUsageReader.todayKey())
+        companion.creditRemoteUsage(remoteDevices)
     }
 
     static func gameplayDigest(_ state: CompanionState, settings: CloudGameSettings? = nil) throws -> String {

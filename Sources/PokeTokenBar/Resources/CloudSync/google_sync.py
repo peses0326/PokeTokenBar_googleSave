@@ -42,6 +42,7 @@ USAGE_DAYS = 14
 MAX_USAGE = 64 * 1024
 MAX_USAGE_DEVICES = 32
 MAX_DAY_TOKENS = 10 ** 13
+MAX_TOTAL_TOKENS = 10 ** 15
 # How long the loopback listener waits for the browser. The consent screen, the unverified-app
 # warning and adding a test user can easily take longer than 4 minutes; when the listener has
 # already exited, the browser only shows "127.0.0.1 refused to connect". GoogleCloudSync.swift
@@ -540,9 +541,19 @@ def validate_usage(value):
                 raise SyncError("Invalid usage summary count")
             counts[provider] = tokens
         days[day] = counts
+    # Lifetime totals since the device's collector started: what the Mac credits from, so any gap
+    # between syncs (days or weeks with no Mac running) is still counted in full.
+    total = value.get("total", {})
+    if not isinstance(total, dict) or len(total) > 16 or any(
+            not isinstance(p, str) or not PROVIDER.match(p) or type(t) is not int or not 0 <= t <= MAX_TOTAL_TOKENS
+            for p, t in total.items()):
+        raise SyncError("Invalid usage summary total")
     name = value.get("deviceName")
-    return {"device": value["device"], "deviceName": name[:80] if isinstance(name, str) and name else "Device",
-            "updatedAt": str(value.get("updatedAt", ""))[:40], "days": days}
+    result = {"device": value["device"], "deviceName": name[:80] if isinstance(name, str) and name else "Device",
+              "updatedAt": str(value.get("updatedAt", ""))[:40], "days": days}
+    if "total" in value:
+        result["total"] = dict(total)
+    return result
 
 
 def usage_list(google, exclude=None):
@@ -563,13 +574,14 @@ def usage_list(google, exclude=None):
             "skipped": skipped}
 
 
-def usage_push(google, device, device_name, days, now=None):
-    """Rewrite this device's single usage file (create it the first time)."""
+def usage_push(google, device, device_name, days, total, now=None):
+    """Rewrite this device's single usage file (create it the first time).
+    `days` is for display (today's usage); `total` (lifetime per provider) is what growth uses."""
     recent = sorted(days)[-USAGE_DAYS:]
     value = {"format": "poketokenbar.usage", "schema": 1, "device": device,
              "deviceName": str(device_name or "Device")[:80],
              "updatedAt": (now or dt.datetime.now(dt.timezone.utc)).strftime("%Y-%m-%dT%H:%M:%SZ"),
-             "days": {day: days[day] for day in recent}}
+             "days": {day: days[day] for day in recent}, "total": dict(total)}
     validate_usage(value)
     name = revision_file_name({"sourceDevice": value["deviceName"]}, "").replace("-Save-", "-Usage-")
     metadata = {"name": name, "description": json.dumps({"device": device, "deviceName": value["deviceName"]})}
@@ -631,7 +643,8 @@ def main():
                 result = usage_list(google, exclude=sync.journal["device"])
             elif args.command == "usage-push":
                 value = read_json(args.request, MAX_USAGE)
-                result = usage_push(google, sync.journal["device"], value.get("deviceName"), value.get("days") or {})
+                result = usage_push(google, sync.journal["device"], value.get("deviceName"), value.get("days") or {},
+                                    value.get("total") or {})
             elif args.command == "exchange":
                 result = sync.exchange(read_json(args.request), args.resolution, args.revision)
                 result["folderURL"] = google.folder_url()

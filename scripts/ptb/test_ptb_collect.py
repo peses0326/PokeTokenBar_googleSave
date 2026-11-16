@@ -175,6 +175,15 @@ class CollectorTests(unittest.TestCase):
         self.assertEqual(self.collector.daily(14, now=self.now), expected)
         self.assertIn("claude", expected["2026-11-09"])
 
+    def test_lifetime_total_keeps_usage_from_deleted_logs(self):
+        self.write("a.jsonl", self.claude("m1", 100))
+        self.collector.scan([self.logs], [])
+        first = self.collector.lifetime()["claude"]
+        (self.logs / "a.jsonl").unlink()   # Claude Code prunes old transcripts
+        self.write("b.jsonl", self.claude("m2", 100))
+        self.collector.scan([self.logs], [])
+        self.assertEqual(self.collector.lifetime()["claude"], first * 2)
+
     def test_timezone_boundary_and_bounded_export_with_lifetime_total(self):
         self.write("one.jsonl", self.claude(stamp="2026-11-08T15:01:00Z"),
                    self.claude("old", stamp="2025-01-01T00:00:00Z"))

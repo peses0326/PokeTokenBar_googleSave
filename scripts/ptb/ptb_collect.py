@@ -332,6 +332,12 @@ class Collector:
                 result.setdefault(day, {})[provider] = tokens
         return result
 
+    def lifetime(self):
+        """{provider: tokens} over everything this collector has ever counted. Kept in SQLite, so it
+        does not drop when Claude Code deletes old transcripts."""
+        return {provider: tokens for provider, tokens in self.db.execute(
+            "SELECT provider, SUM(input+output+cache_write+cache_read) FROM days GROUP BY provider") if tokens}
+
     def summary(self, now=None):
         now = now or dt.datetime.now(dt.timezone.utc)
         cutoff = (now.astimezone(self.zone).date() - dt.timedelta(days=61)).isoformat()

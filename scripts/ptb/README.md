@@ -62,8 +62,9 @@ ptb dex
 
 - Same rule as the Mac app: input + output + cache write + cache read tokens. Codex forks and subagents are not counted twice.
 - The first run reads the existing logs once. After that, only new lines are read. Read offsets and token counts are kept in `collector/usage.sqlite3`; prompts and code are never stored or uploaded.
-- Each computer keeps **one** usage file in Drive (`PokeTokenBar-Usage-<name>.json`), rewritten in place, with the last 14 days.
-- The Mac credits only usage **after** it first sees a device, so history from before setup is not paid out at once. A late upload for yesterday (just after midnight) still counts. Which usage was credited is stored in the save, so a second Mac does not credit it again.
+- Each computer keeps **one** usage file in Drive (`PokeTokenBar-Usage-<name>.json`), rewritten in place. It holds the computer's **lifetime total** (what growth uses) and the last 14 days (for display).
+- The Mac credits the growth of that lifetime total since its last credit. There is no date limit: if no Mac was opened for weeks while the server kept working, all of it is credited when a Mac opens.
+- Only usage **after** the Mac first sees a computer counts, so history from before setup is not paid out at once. What was credited is stored in the save, so a second Mac does not credit it again.
 - Don't run `ptb push` on a Mac that runs the app (it refuses): that Mac's usage would count twice.
 
 ## Uninstall

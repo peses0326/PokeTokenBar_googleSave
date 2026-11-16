@@ -69,6 +69,7 @@ class PtbTests(unittest.TestCase):
         self.assertEqual(len(files), 1)
         self.assertEqual(files[0][0]["name"], "PokeTokenBar-Usage-my-server.json")
         self.assertEqual(files[0][1]["days"], {"2026-11-13": {"claude": 150}})
+        self.assertEqual(files[0][1]["total"], {"claude": 150})
 
     def test_push_refuses_on_a_mac_running_the_app(self):
         root = self.claude_log(1)

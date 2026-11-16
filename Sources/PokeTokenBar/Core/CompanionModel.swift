@@ -698,6 +698,9 @@ struct CompanionState: Codable, Sendable {
     var candyGrantTier: [String: Int] = [:]
     // 창 key → 마지막으로 본 epoch(`resets_at`). util 이 계속 100%여도 epoch 교체로 재무장(#326).
     var candyWindowEpoch: [String: String] = [:]
+    /// Other computers' usage already credited to this save (see `RemoteUsageLedger`). Synced with
+    /// the save on purpose, unlike `claimedTodayTokensByProvider`, so two Macs never pay it twice.
+    var remoteUsageLedger: [String: RemoteUsageLedger] = [:]
     // 사탕 지급 첫 실행 시드 완료 — 업데이트 직후 이미 100%였던 창의 소급 지급 차단.
     var candyFeatureSeeded = false
     // 세대(지역) 도감 완성 알림을 이미 보낸 배지 키. 재시작마다 다시 알리지 않게 영속.
@@ -744,6 +747,7 @@ struct CompanionState: Codable, Sendable {
         inventory          = c.lenient([String: Int].self, forKey: .inventory, default: [:])
         candyGrantTier     = c.lenient([String: Int].self, forKey: .candyGrantTier, default: [:])
         candyWindowEpoch   = c.lenient([String: String].self, forKey: .candyWindowEpoch, default: [:])
+        remoteUsageLedger  = c.lenient([String: RemoteUsageLedger].self, forKey: .remoteUsageLedger, default: [:])
         candyFeatureSeeded = c.lenient(Bool.self, forKey: .candyFeatureSeeded, default: false)
         notifiedDexCompletions = c.lenient(Set<String>.self, forKey: .notifiedDexCompletions, default: [])
         dexCompletionsSeeded = c.lenient(Bool.self, forKey: .dexCompletionsSeeded, default: false)

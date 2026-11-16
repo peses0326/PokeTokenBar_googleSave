@@ -36,6 +36,12 @@ MAX_SUMMARY = 256 * 1024
 MAX_FILES = 2000
 # Each device keeps its current revision plus one backup; older ones it wrote go to the Drive trash.
 REVISIONS_PER_DEVICE = 2
+# Usage summaries: one file per device, rewritten in place (only that device writes it).
+USAGE_KIND = "usage-v1"
+USAGE_DAYS = 14
+MAX_USAGE = 64 * 1024
+MAX_USAGE_DEVICES = 32
+MAX_DAY_TOKENS = 10 ** 13
 # How long the loopback listener waits for the browser. The consent screen, the unverified-app
 # warning and adding a test user can easily take longer than 4 minutes; when the listener has
 # already exited, the browser only shows "127.0.0.1 refused to connect". GoogleCloudSync.swift
@@ -283,6 +289,14 @@ class Google:
         return json.loads(self.request(API + "/" + urllib.parse.quote(file_id, safe="") + "?alt=media",
                                        maximum=maximum))
 
+    def update(self, file_id, metadata, value):
+        boundary = "ptb_" + secrets.token_hex(16)
+        body = (f"--{boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n".encode() +
+                encode(metadata) + f"\r\n--{boundary}\r\nContent-Type: application/json\r\n\r\n".encode() +
+                encode(value) + f"\r\n--{boundary}--\r\n".encode())
+        self.request(UPLOAD + "/" + urllib.parse.quote(file_id, safe="") + "?uploadType=multipart&fields=id", "PATCH",
+                     body=body, content_type="multipart/related; boundary=" + boundary)
+
 
 def authorize(directory, client_path, port=0, no_browser=False):
     directory = private_directory(directory)
@@ -505,6 +519,75 @@ class Sync:
         atomic_json(self.journal_path, self.journal)
 
 
+DAY = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+PROVIDER = re.compile(r"^[a-z0-9_.-]{1,40}$")
+
+
+def validate_usage(value):
+    """A usage summary from Drive is untrusted: any device signed in to the account can write one."""
+    if not isinstance(value, dict) or value.get("format") != "poketokenbar.usage" or value.get("schema") != 1 \
+            or not valid_uuid(value.get("device")) or not isinstance(value.get("days"), dict) \
+            or len(value["days"]) > USAGE_DAYS * 2:
+        raise SyncError("Invalid usage summary")
+    days = {}
+    for day, providers in value["days"].items():
+        if not isinstance(day, str) or not DAY.match(day) or not isinstance(providers, dict) or len(providers) > 16:
+            raise SyncError("Invalid usage summary day")
+        counts = {}
+        for provider, tokens in providers.items():
+            if not isinstance(provider, str) or not PROVIDER.match(provider) or type(tokens) is not int \
+                    or not 0 <= tokens <= MAX_DAY_TOKENS:
+                raise SyncError("Invalid usage summary count")
+            counts[provider] = tokens
+        days[day] = counts
+    name = value.get("deviceName")
+    return {"device": value["device"], "deviceName": name[:80] if isinstance(name, str) and name else "Device",
+            "updatedAt": str(value.get("updatedAt", ""))[:40], "days": days}
+
+
+def usage_list(google, exclude=None):
+    """Every other device's usage summary. A malformed file is skipped, never fatal to the save sync."""
+    devices, skipped = {}, 0
+    for item in google.files(USAGE_KIND)[:MAX_USAGE_DEVICES * 2]:
+        try:
+            value = validate_usage(google.download(item["id"], maximum=MAX_USAGE))
+        except (SyncError, KeyError, TypeError, ValueError):
+            skipped += 1
+            continue
+        if value["device"] == exclude:
+            continue
+        previous = devices.get(value["device"])
+        if previous is None or value["updatedAt"] > previous["updatedAt"]:
+            devices[value["device"]] = value
+    return {"status": "ok", "devices": sorted(devices.values(), key=lambda d: d["deviceName"])[:MAX_USAGE_DEVICES],
+            "skipped": skipped}
+
+
+def usage_push(google, device, device_name, days, now=None):
+    """Rewrite this device's single usage file (create it the first time)."""
+    recent = sorted(days)[-USAGE_DAYS:]
+    value = {"format": "poketokenbar.usage", "schema": 1, "device": device,
+             "deviceName": str(device_name or "Device")[:80],
+             "updatedAt": (now or dt.datetime.now(dt.timezone.utc)).strftime("%Y-%m-%dT%H:%M:%SZ"),
+             "days": {day: days[day] for day in recent}}
+    validate_usage(value)
+    name = revision_file_name({"sourceDevice": value["deviceName"]}, "").replace("-Save-", "-Usage-")
+    metadata = {"name": name, "description": json.dumps({"device": device, "deviceName": value["deviceName"]})}
+    mine = []
+    for item in google.files(USAGE_KIND):
+        with contextlib.suppress(KeyError, TypeError, ValueError):
+            if json.loads(item.get("description") or "{}").get("device") == device:
+                mine.append(item["id"])
+    if mine:
+        google.update(mine[0], metadata, value)
+        for extra in mine[1:]:   # A lost create response can leave a duplicate; keep one.
+            with contextlib.suppress(SyncError):
+                google.request(API + "/" + urllib.parse.quote(extra, safe=""), "PATCH", value={"trashed": True})
+    else:
+        google.create(dict(metadata, appProperties={"ptbKind": USAGE_KIND}), value)
+    return {"status": "pushed", "days": len(recent)}
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--state-dir", required=True)
@@ -521,6 +604,9 @@ def main():
     exchange.add_argument("--revision")
     ack = sub.add_parser("ack")
     ack.add_argument("--request", required=True)
+    sub.add_parser("usage-list")
+    push = sub.add_parser("usage-push")
+    push.add_argument("--request", required=True)
     args = parser.parse_args()
     os.umask(0o077)
     directory = private_directory(args.state_dir)
@@ -541,7 +627,12 @@ def main():
         else:
             google = Google(directory)
             sync = Sync(google, directory)
-            if args.command == "exchange":
+            if args.command == "usage-list":
+                result = usage_list(google, exclude=sync.journal["device"])
+            elif args.command == "usage-push":
+                value = read_json(args.request, MAX_USAGE)
+                result = usage_push(google, sync.journal["device"], value.get("deviceName"), value.get("days") or {})
+            elif args.command == "exchange":
                 result = sync.exchange(read_json(args.request), args.resolution, args.revision)
                 result["folderURL"] = google.folder_url()
             else:

@@ -559,7 +559,10 @@ final class SaveTransferTests: XCTestCase {
                                      "collectedFinals", "inventory",
                                      "notifiedDexCompletions", "dexCompletionsSeeded"]
         let deviceLedger: Set<String> = ["installBaselineSet", "claimedTodayTokensByProvider", "lastDate"]
-        let accountLedger: Set<String> = ["candyGrantTier", "candyWindowEpoch", "candyFeatureSeeded"]
+        // remoteUsageLedger = 계정 원장 — 다른 컴퓨터 사용량을 어디까지 지급했나. 병합해야 오래된 세이브를
+        // 불러와도 같은 서버 토큰이 두 번 지급되지 않는다.
+        let accountLedger: Set<String> = ["candyGrantTier", "candyWindowEpoch", "candyFeatureSeeded",
+                                          "remoteUsageLedger"]
         let devicePreference: Set<String> = ["language"]
 
         let classified = progress.union(deviceLedger).union(accountLedger).union(devicePreference)

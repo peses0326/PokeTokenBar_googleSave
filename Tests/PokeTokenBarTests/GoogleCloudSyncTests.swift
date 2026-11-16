@@ -95,7 +95,9 @@ final class GoogleCloudSyncTests: XCTestCase {
             let reply = try JSONSerialization.data(withJSONObject: ["status": "download", "save": object,
                 "clock": [UUID().uuidString.lowercased(): 1], "digest": "digest"])
             let sync = GoogleCloudSync(directory: directory.appendingPathComponent("google-sync"), defaults: defaults,
-                runner: { _, _ in
+                runner: { arguments, _ in
+                    // The local edit lands while the exchange is in flight (not during the usage read before it).
+                    guard arguments.contains("exchange") else { return Data("{}".utf8) }
                     await MainActor.run {
                         companion.update(todayTokensByProvider: ["local": 1], todayDate: "day", monthTotal: 0,
                                          burnTier: .idle, limitWarning: false, hasUsageData: true)

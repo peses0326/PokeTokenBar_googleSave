@@ -76,6 +76,8 @@ final class GoogleCloudSync {
     private(set) var heads: [Head] = []
     private(set) var lastSync: Date?
     private(set) var driveFolderURL: URL?
+    /// Other computers' usage from the last sync, for display; their growth is credited in `synchronize`.
+    private(set) var remoteDevices: [RemoteDeviceUsage] = []
     var loginConfigured: Bool { oauthClient?.isValid == true }
     /// Mirrors `SIGN_IN_WINDOW_SECONDS` in google_sync.py. The helper's process timeout must exceed it,
     /// or the app kills the loopback listener while the user is still on Google's consent screen.
@@ -162,7 +164,7 @@ final class GoogleCloudSync {
         generation += 1
         do {
             _ = try await run(["disconnect"])
-            enabled = false; status = "disconnected"; email = ""; heads = []
+            enabled = false; status = "disconnected"; email = ""; heads = []; remoteDevices = []
             driveFolderURL = nil
             defaults.set(false, forKey: "googleSyncEnabled")
             defaults.removeObject(forKey: "googleSyncEmail")
@@ -174,6 +176,17 @@ final class GoogleCloudSync {
         guard enabled, !busy, Date() >= nextSync, !["empty", "choose", "conflict"].contains(status) else { return }
         nextSync = Date().addingTimeInterval(1800)
         Task { await synchronize(companion: companion, usage: usage) }
+    }
+
+    /// Reads other computers' usage files and grows the companion by their new usage. Before the save
+    /// snapshot, so the updated ledger is uploaded with it. Failure only skips the credit: usage files
+    /// are a bonus and must never block the save sync.
+    private func creditRemoteUsage(companion: CompanionStore) async {
+        struct UsageReply: Decodable { let status: String; let devices: [RemoteDeviceUsage] }
+        guard let data = try? await run(["usage-list"]),
+              let reply = try? JSONDecoder().decode(UsageReply.self, from: data), reply.status == "ok" else { return }
+        remoteDevices = RemoteUsageCredit.validated(reply.devices)
+        companion.creditRemoteUsage(remoteDevices, todayDate: LocalUsageReader.todayKey())
     }
 
     static func gameplayDigest(_ state: CompanionState, settings: CloudGameSettings? = nil) throws -> String {
@@ -195,6 +208,8 @@ final class GoogleCloudSync {
         nextSync = Date().addingTimeInterval(1800)
         defer { busy = false }
         let operationGeneration = generation
+        await creditRemoteUsage(companion: companion)
+        guard generation == operationGeneration else { return }
         let request = directory.appendingPathComponent("request-\(UUID().uuidString).json")
         let ack = directory.appendingPathComponent("ack-\(UUID().uuidString).json")
         defer { try? FileManager.default.removeItem(at: request); try? FileManager.default.removeItem(at: ack) }

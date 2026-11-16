@@ -1003,10 +1003,10 @@ final class CompanionStore {
     /// in the Drive save folder). Returns the tokens credited. Runs before the save is uploaded, so the
     /// updated ledger travels with it.
     @discardableResult
-    func creditRemoteUsage(_ devices: [RemoteDeviceUsage], todayDate: String) -> Int {
+    func creditRemoteUsage(_ devices: [RemoteDeviceUsage]) -> Int {
         guard state.installBaselineSet else { return 0 }
         var ledger = state.remoteUsageLedger
-        let delta = RemoteUsageCredit.apply(devices, ledger: &ledger, todayDate: todayDate)
+        let delta = RemoteUsageCredit.apply(devices, ledger: &ledger)
         guard ledger != state.remoteUsageLedger || delta > 0 else { return 0 }
         state.remoteUsageLedger = ledger
         if delta > 0 {

@@ -149,12 +149,9 @@ enum SaveTransfer {
         s.claimedTodayTokensByProvider = s.claimedTodayTokensByProvider?.reduce(into: [:]) { result, entry in
             result[entry.key] = clampToken(entry.value)
         }
-        s.remoteUsageLedger = s.remoteUsageLedger.filter { RemoteUsageCredit.isDay($0.value.seededThrough) }
-            .prefix(RemoteUsageCredit.maxDevices).reduce(into: [:]) { result, entry in
-                var ledger = entry.value
-                ledger.claimed = ledger.claimed.filter { RemoteUsageCredit.isDay($0.key) }.mapValues(clampToken)
-                result[entry.key] = ledger
-            }
+        s.remoteUsageLedger = s.remoteUsageLedger.prefix(RemoteUsageCredit.maxDevices).reduce(into: [:]) { result, entry in
+            result[entry.key] = RemoteUsageLedger(claimedTotal: min(max(0, entry.value.claimedTotal), RemoteUsageCredit.maxTotalTokens))
+        }
         // 알 보증은 "지금 품고 있는 알"에만 붙는 값이라 활성 포켓몬과 공존할 수 없다. 손편집·구버전
         // 조합으로 둘 다 들어오면 그 보증이 다음 알로 새어 영구 프리미엄이 되므로 여기서 떨군다.
         // 그 보증으로 미리 뽑아둔 종(pendingHatchID)도 함께 버린다 — 보증만 지우면 졸업 후 받는 **무료**

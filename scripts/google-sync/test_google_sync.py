@@ -319,25 +319,26 @@ class UsageSummaryTests(unittest.TestCase):
                 if meta["appProperties"]["ptbKind"] == cloud.USAGE_KIND and not meta.get("trashed")]
 
     def test_each_device_rewrites_one_file_in_place(self):
-        cloud.usage_push(self.google, DEVICE_A, "my-server", {"2026-11-13": {"claude": 10}})
-        cloud.usage_push(self.google, DEVICE_A, "my-server", {"2026-11-13": {"claude": 25}})
+        cloud.usage_push(self.google, DEVICE_A, "my-server", {"2026-11-13": {"claude": 10}}, {"claude": 10})
+        cloud.usage_push(self.google, DEVICE_A, "my-server", {"2026-11-13": {"claude": 25}}, {"claude": 25})
         files = self.usage_files()
         self.assertEqual(len(files), 1)
         self.assertEqual(files[0][0]["name"], "PokeTokenBar-Usage-my-server.json")
         self.assertEqual(files[0][1]["days"], {"2026-11-13": {"claude": 25}})
-        cloud.usage_push(self.google, DEVICE_B, "laptop", {"2026-11-13": {"codex": 5}})
+        self.assertEqual(files[0][1]["total"], {"claude": 25})
+        cloud.usage_push(self.google, DEVICE_B, "laptop", {"2026-11-13": {"codex": 5}}, {"codex": 5})
         self.assertEqual(len(self.usage_files()), 2)
 
     def test_only_recent_days_are_uploaded(self):
         days = {f"2026-10-{d:02d}": {"claude": d} for d in range(1, 31)}
-        cloud.usage_push(self.google, DEVICE_A, "s", days)
+        cloud.usage_push(self.google, DEVICE_A, "s", days, {"claude": 465})
         uploaded = self.usage_files()[0][1]["days"]
         self.assertEqual(len(uploaded), cloud.USAGE_DAYS)
         self.assertEqual(max(uploaded), "2026-10-30")
 
     def test_list_excludes_this_device_and_skips_malformed_files(self):
-        cloud.usage_push(self.google, DEVICE_A, "me", {"2026-11-13": {"claude": 1}})
-        cloud.usage_push(self.google, DEVICE_B, "server", {"2026-11-13": {"claude": 7}})
+        cloud.usage_push(self.google, DEVICE_A, "me", {"2026-11-13": {"claude": 1}}, {"claude": 1})
+        cloud.usage_push(self.google, DEVICE_B, "server", {"2026-11-13": {"claude": 7}}, {"claude": 7})
         self.google.create({"name": "x", "appProperties": {"ptbKind": cloud.USAGE_KIND}}, {"format": "nope"})
         result = cloud.usage_list(self.google, exclude=DEVICE_A)
         self.assertEqual([d["device"] for d in result["devices"]], [DEVICE_B])
@@ -354,6 +355,11 @@ class UsageSummaryTests(unittest.TestCase):
                 cloud.validate_usage(dict(good, days=days))
         with self.assertRaises(cloud.SyncError):
             cloud.validate_usage(dict(good, device="not-a-uuid"))
+        for total in ({"claude": -1}, {"claude": True}, {"claude": cloud.MAX_TOTAL_TOKENS + 1}, {"Bad Name": 1}, [1]):
+            with self.assertRaises(cloud.SyncError, msg=str(total)):
+                cloud.validate_usage(dict(good, total=total))
+        self.assertNotIn("total", cloud.validate_usage(good), "an older ptb without totals stays readable")
+        self.assertEqual(cloud.validate_usage(dict(good, total={"claude": 9}))["total"], {"claude": 9})
 
 
 class SignInWindowTest(unittest.TestCase):

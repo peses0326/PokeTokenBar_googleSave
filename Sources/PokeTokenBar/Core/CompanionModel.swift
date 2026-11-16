@@ -111,20 +111,28 @@ enum PokemonBalance {
     static let eggHatchThreshold = 5_000_000
     static let repeatGrowthMultiplier = 2
 
-    static func graduationTotal(_ rarity: Rarity) -> Int {
+    /// PokeTokenBar_gs grows every stage 40% faster than the original (each threshold × 0.6). Applied to
+    /// the totals, so stage costs, levels, rare candy and the tier ratios behind egg prices stay consistent.
+    /// Only the `_gs` build (Info.plist `PTBGoogleSaveVersion`) uses it; tests and the original keep 1.
+    static let gsGrowthCostFactor = 0.6
+    static let growthCostFactor: Double = AppEnv.isGoogleSaveVersion ? gsGrowthCostFactor : 1
+
+    static func graduationTotal(_ rarity: Rarity, factor: Double = growthCostFactor) -> Int {
+        let upstream: Int
         switch rarity {
-        case .common:    return    750_000_000
-        case .uncommon:  return  1_875_000_000
-        case .rare:      return  3_000_000_000
-        case .legendary: return  6_000_000_000
+        case .common:    upstream =    750_000_000
+        case .uncommon:  upstream =  1_875_000_000
+        case .rare:      upstream =  3_000_000_000
+        case .legendary: upstream =  6_000_000_000
         }
+        return Int((Double(upstream) * factor).rounded())
     }
     /// stageIndex(0-based)에서 다음 단계/졸업까지 필요한 토큰.
     static func phaseThreshold(rarity: Rarity, totalForms k: Int, stageIndex: Int,
-                               growthMultiplier: Int = 1) -> Int {
+                               growthMultiplier: Int = 1, factor: Double = growthCostFactor) -> Int {
         let kk = max(1, k)
         let i = stageIndex + 1                         // 1-based
-        let total = Double(graduationTotal(rarity))
+        let total = Double(graduationTotal(rarity, factor: factor))
         let denom = Double(kk * (kk + 1)) / 2.0
         let standardThreshold = Int((total * Double(i) / denom).rounded())
         return max(1, Int((Double(standardThreshold) / Double(max(1, growthMultiplier))).rounded()))
@@ -764,6 +772,11 @@ struct CompanionState: Codable, Sendable {
         guard let active else { return false }
         return active.pathIDs.prefix(active.stageIndex + 1).contains(speciesID)
             && PokemonForm.resolved(speciesID: speciesID, form: active.form) == form
+    }
+
+    /// The line already hatched once: graduated or released (Pokédex) or being raised now.
+    func hasAppeared(baseID: Int) -> Bool {
+        active?.baseID == baseID || dex.contains { $0.baseID == baseID }
     }
 
     func hasCollectedFinal(forBaseID baseID: Int) -> Bool {

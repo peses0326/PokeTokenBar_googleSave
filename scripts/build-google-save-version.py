@@ -52,7 +52,7 @@ def main():
     info = {"CFBundleExecutable": "PokeTokenBar", "CFBundleIconFile": "AppIcon",
             "CFBundleIdentifier": "io.github.peses0326.poketokenbar-gs",
             "CFBundleName": name, "CFBundleDisplayName": name, "CFBundlePackageType": "APPL",
-            "CFBundleShortVersionString": "0.4.2", "CFBundleVersion": "7",
+            "CFBundleShortVersionString": "0.4.3", "CFBundleVersion": "8",
             "LSMinimumSystemVersion": "14.0", "LSUIElement": True,
             "NSHighResolutionCapable": True, "PTBGoogleSaveVersion": True,
             # Clicking the pet after an agent finishes selects that agent's Terminal / iTerm2 tab.

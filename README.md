@@ -9,25 +9,23 @@ Everything below this section is the original README.
 
 </div>
 
-**Differences from the original**
+**Features**
 
-| | Original PokeTokenBar | PokeTokenBar_gs |
-|---|---|---|
-| Save sync | Manual save export/import | Automatic backup to `PokeTokenBar_Save` in your own Google Drive (`drive.file` scope only), continue on another Mac |
-| Floating pet motion | No idle motion (bobs only while an agent works) | Idle motions you pick one by one (hop, walk around, look around, wiggle, bounce, sway), with frequency and walking range from 1 to 5 |
-| Clicking the pet after an agent finishes | Opens the popover | Brings that agent's Terminal / iTerm2 tab to the front (needs the `app`/`tty` hook parameters below) |
-| App identity | `PokeTokenBar.app` | `PokeTokenBar_gs.app` with its own Poké Ball icon, bundle id, data folder and `poketokenbar-gs://` agent URL scheme, installs alongside the original |
-| Usage from other computers | Only the Mac running the app counts | A Linux server or any other computer runs `ptb`, which uploads its daily token totals; the Mac grows the companion with them |
-| Egg prices | 1B / 2.5B / 4B | 700M / 1.75B / 2.8B (30% off) |
-| Growth per stage | Common 750M, uncommon 1.875B, rare 3B, legendary 6B to graduate (× growth difficulty) | 40% less for every stage: 450M / 1.125B / 1.8B / 3.6B (on *Easy* 10%, a 100M step takes 60M) |
-| Species from eggs | Already collected lines come back at half weight | A line that already hatched (graduated, released or being raised) never hatches again; repeats return only after every candidate has hatched |
-| Updates | Banner, then `brew upgrade` or the release page | Settings → Updates → *Automatic updates* (on by default): once a day it checks this fork's latest release, downloads `PokeTokenBar_gs.zip`, verifies GitHub's SHA-256 digest, the bundle id, version and signature, swaps the app and relaunches. *Check now* runs it immediately |
-
-Everything else (menu bar, popover, settings, login launch) is the original code, based on upstream v2.5.7. The `_gs` build does not use the original update check (it would install the original app); it updates itself from this fork's releases instead.
+| Feature | PokeTokenBar_gs |
+|---|---|
+| Save sync | Automatic backup to `PokeTokenBar_Save` in your own Google Drive (`drive.file` scope only), continue on another Mac |
+| Floating pet motion | Idle motions you pick one by one (hop, walk around, look around, wiggle, bounce, sway), with frequency and walking range from 1 to 5 |
+| Clicking the pet after an agent finishes | Brings that agent's Terminal / iTerm2 tab to the front (needs the `app`/`tty` hook parameters below) |
+| App identity | `PokeTokenBar_gs.app`: Poké Ball icon, bundle id `io.github.peses0326.poketokenbar-gs`, data folder `~/Library/Application Support/PokeTokenBar_gs/`, agent URL scheme `poketokenbar-gs://` |
+| Usage from other computers | A Linux server or any other computer runs `ptb`, which uploads its daily token totals; the Mac grows the companion with them |
+| Egg prices | 700M / 1.75B / 2.8B |
+| Growth per stage | To graduate: common 450M, uncommon 1.125B, rare 1.8B, legendary 3.6B, split across the stages (× growth difficulty: *Easy* is 10%) |
+| Species from eggs | A line that already hatched (graduated, released or being raised) never hatches again; repeats return only after every candidate has hatched |
+| Updates | Settings → Updates → *Automatic updates* (on by default): once a day it checks this fork's latest release, downloads `PokeTokenBar_gs.zip`, verifies GitHub's SHA-256 digest, the bundle id, version and signature, swaps the app and relaunches. *Check now* runs it immediately |
 
 **Idle motions.** Settings → Floating Pet → *Auto motion*. Each motion has its own checkbox. *Frequency* sets how often the pet moves (level 1 ≈ every 15–35 s, level 2 = default ≈ 8–20 s, level 5 ≈ 1.5–4 s). *Range* sets how far a walk may wander from where you placed the pet (about 0.75 to 6 pet widths). The pet always walks back toward its home spot, never leaves the screen, and stops a walk when you drag it. Motions pause under macOS *Reduce motion* or Low Power Mode.
 
-**Install.** Download `PokeTokenBar_gs.zip` from the [latest release](https://github.com/peses0326/PokeTokenBar_googleSave/releases/latest), unzip it and drag `PokeTokenBar_gs.app` into `/Applications`. The app is not notarized, so the first launch is blocked: open System Settings → Privacy & Security and click *Open Anyway* (or run `xattr -dr com.apple.quarantine /Applications/PokeTokenBar_gs.app`). Apple Silicon, macOS 14 or later. It installs alongside the original app.
+**Install.** Download `PokeTokenBar_gs.zip` from the [latest release](https://github.com/peses0326/PokeTokenBar_googleSave/releases/latest), unzip it and drag `PokeTokenBar_gs.app` into `/Applications`. The app is not notarized, so the first launch is blocked: open System Settings → Privacy & Security and click *Open Anyway* (or run `xattr -dr com.apple.quarantine /Applications/PokeTokenBar_gs.app`). Apple Silicon, macOS 14 or later.
 
 **Google Drive sync**
 
@@ -41,7 +39,7 @@ How it works:
 - **Where.** One small JSON file per revision in `PokeTokenBar_Save` in your own Drive. *Open my Drive save folder* in Settings shows it. Files are named `PokeTokenBar-Save-<device>-<date>_<time>-<id>.json`; each device keeps two: its current save and one backup. Older ones it wrote go to the Drive trash.
 - **When.** After the usage refresh, at most once every 30 minutes while the app runs, plus *Sync now*. A sync starts one short Python process (`python3` 3.9+ must be installed, e.g. via Xcode Command Line Tools), lists the folder and uploads only if the game changed, so the CPU, battery and network cost is negligible.
 - **Conflicts.** Revisions carry vector clocks, not timestamps. If two Macs both progressed since their last sync, nothing is overwritten: the app asks which save to continue, keeps a local backup before replacing anything, and never adds the two saves' items or experience together. Using one Mac at a time avoids this entirely.
-- **No developer server.** The app talks only to Google (sign-in, plus the `PokeTokenBar_Save` folder in *your own* Drive) and the original app's hosts listed under *Privacy & permissions*. There is no PokeTokenBar_gs server: nothing is sent to the developer, and the developer cannot read your Drive. The sign-in token stays on this Mac (`~/Library/Application Support/PokeTokenBar_gs/google-sync/`, readable only by you). Signing out in Settings deletes it; you can also revoke access at [myaccount.google.com/permissions](https://myaccount.google.com/permissions).
+- **No developer server.** The app talks only to Google (sign-in, plus the `PokeTokenBar_Save` folder in *your own* Drive) and the hosts listed under *Privacy & permissions*. There is no PokeTokenBar_gs server: nothing is sent to the developer, and the developer cannot read your Drive. The sign-in token stays on this Mac (`~/Library/Application Support/PokeTokenBar_gs/google-sync/`, readable only by you). Signing out in Settings deletes it; you can also revoke access at [myaccount.google.com/permissions](https://myaccount.google.com/permissions).
 
 **Second Mac, personal server, other computers**
 
